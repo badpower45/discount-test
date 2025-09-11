@@ -84,3 +84,33 @@ Authentication is managed through Supabase Auth, providing secure user managemen
 The application requires environment variables for Supabase integration:
 - `VITE_SUPABASE_URL`: Supabase project URL
 - `VITE_SUPABASE_ANON_KEY`: Supabase anonymous key for client-side operations
+
+# Recent Updates (September 2025)
+
+## Critical Issue Resolution
+- **App Stability**: Fixed critical Vite HMR configuration issue that caused constant app restarts and data loss during user input
+- **Database Persistence**: Resolved coupon generation failures by fixing ambiguous column references in PostgreSQL functions
+
+## Enhanced Security Implementation  
+- **Authentication System**: Complete Supabase Auth integration with merchant login/logout functionality
+- **Role-Based Access**: Admin dashboard protected with role-based authentication (admin@platform.com)
+- **Production Security**: Demo credentials hidden in production builds, test accounts available in development
+- **Row Level Security**: Comprehensive RLS policies documented for production deployment
+
+## Database Schema Enhancements
+- **Extended Fields**: Added logo_url, restaurant_name, and offer_name fields as requested
+- **Real Data Integration**: All components now use Supabase database instead of mock data
+- **Merchant Data**: Real-time coupon fetching per restaurant using fetchRestaurantCoupons RPC function
+- **Admin Statistics**: Dashboard shows live statistics from database via fetchDashboardStats
+
+## UI/UX Improvements
+- **Restaurant Logos**: Logo display integrated across LandingPage and CustomerDiscountPage
+- **Merchant Dashboard**: Real-time coupon validation and usage tracking with proper authentication
+- **Admin Dashboard**: Live platform statistics with real database aggregations
+- **Consistent Branding**: Separate display of restaurant names and offer names throughout interface
+
+## Production Readiness
+- **No LSP Errors**: Clean codebase with no compilation or type errors  
+- **Security Verified**: All critical vulnerabilities resolved through authentication and authorization controls
+- **End-to-End Tested**: Complete flow verified from coupon generation to dashboard display
+- **Database Integrity**: All operations properly save to and retrieve from Supabase PostgreSQL
