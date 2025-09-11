@@ -7,6 +7,8 @@ import path from 'path';
     plugins: [react()],
     define: {
       // Pass environment variables to client
+      'VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
+      'VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY),
       'process.env.SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL),
       'process.env.SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY),
     },
@@ -65,8 +67,7 @@ import path from 'path';
       strictPort: true,
       open: false,
       allowedHosts: true,
-      hmr: {
-        port: 5000,
-      },
+      // Disable HMR completely to prevent constant restarts
+      hmr: false,
     },
   });

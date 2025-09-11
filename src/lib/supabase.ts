@@ -1,10 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Get environment variables from Replit Secrets via Vite define
-const supabaseUrl = (import.meta.env as any)?.VITE_SUPABASE_URL || 
-                   (process.env as any)?.SUPABASE_URL
-const supabaseAnonKey = (import.meta.env as any)?.VITE_SUPABASE_ANON_KEY || 
-                       (process.env as any)?.SUPABASE_ANON_KEY
+declare const VITE_SUPABASE_URL: string;
+declare const VITE_SUPABASE_ANON_KEY: string;
+
+const supabaseUrl = (typeof VITE_SUPABASE_URL !== 'undefined') ? VITE_SUPABASE_URL : 
+                   ((import.meta as any)?.env?.VITE_SUPABASE_URL || 
+                   (process.env as any)?.VITE_SUPABASE_URL);
+
+const supabaseAnonKey = (typeof VITE_SUPABASE_ANON_KEY !== 'undefined') ? VITE_SUPABASE_ANON_KEY :
+                       ((import.meta as any)?.env?.VITE_SUPABASE_ANON_KEY || 
+                       (process.env as any)?.VITE_SUPABASE_ANON_KEY);
 
 console.log('🔧 Supabase Configuration:', { 
   hasUrl: !!supabaseUrl, 
