@@ -59,5 +59,6 @@
       port: 5000,
       strictPort: true,
       open: false,
+      allowedHosts: ['all'],
     },
   });
