@@ -9,20 +9,17 @@ export async function checkTables() {
     // Test restaurants table
     const { data: restaurants, error: restaurantError } = await supabase
       .from('restaurants')
-      .select('count')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
 
     // Test users table  
     const { data: users, error: userError } = await supabase
       .from('users')
-      .select('count')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
 
     // Test coupons table
     const { data: coupons, error: couponError } = await supabase
       .from('coupons')
-      .select('count')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
 
     const tablesExist = {
       restaurants: !restaurantError,
@@ -78,15 +75,14 @@ export async function seedRestaurants() {
   try {
     const { data: existing, error: checkError } = await supabase
       .from('restaurants')
-      .select('count')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
     
     if (checkError) {
       console.error('Error checking restaurants:', checkError);
       return;
     }
 
-    if (existing && existing.length > 0) {
+    if (!checkError && existing && existing.length > 0) {
       console.log('📊 Restaurants already exist, skipping seed');
       return;
     }
@@ -343,13 +339,15 @@ export const db = {
 export async function initializeDatabase() {
   console.log('🚀 Initializing database...');
   
-  const result = await createTables();
-  if (result.success) {
+  // Check if tables exist first
+  const tablesExist = await checkTables();
+  
+  if (tablesExist.restaurants && tablesExist.users && tablesExist.coupons) {
     await seedRestaurants();
     console.log('✅ Database initialized successfully');
+    return { success: true, message: 'Database ready' };
   } else {
-    console.error('❌ Database initialization failed');
+    console.error('❌ Database tables missing. Please create them in Supabase dashboard.');
+    return { success: false, message: 'Tables missing' };
   }
-  
-  return result;
 }

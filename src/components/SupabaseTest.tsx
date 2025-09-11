@@ -43,8 +43,8 @@ export function SupabaseTest() {
           return;
         }
 
-        // Test basic connection
-        const { data, error } = await supabase.from('_test_').select('*').limit(1);
+        // Test basic connection with real table
+        const { data, error } = await supabase.from('restaurants').select('*').limit(1);
         
         // Check if tables exist
         const tables = await checkTables();
