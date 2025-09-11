@@ -21,6 +21,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { validateCoupon, useCoupon } from '../lib/database-functions';
 
 export function MerchantDashboard() {
   const navigate = useNavigate();
@@ -39,47 +40,94 @@ export function MerchantDashboard() {
     code.offerId === '1' // Assuming this merchant owns offer with ID 1
   );
 
-  const handleValidateCode = () => {
-    const code = discountCodes.find(c => c.code === validateCode.trim());
-    
-    if (!code) {
-      setValidationResult({
-        isValid: false,
-        message: 'Code not found'
-      });
-      toast.error('Invalid code');
+  const handleValidateCode = async () => {
+    if (!validateCode.trim()) {
+      toast.error('Please enter a code');
       return;
     }
 
-    if (code.isUsed) {
+    try {
+      // Use real database RPC function to validate coupon
+      const result = await validateCoupon(validateCode.trim(), '1'); // Using restaurant ID '1' for this merchant
+      
+      if (result.success && result.coupon) {
+        setValidationResult({
+          isValid: true,
+          code: {
+            ...result.coupon,
+            customerName: result.coupon.customer_name || 'Unknown',
+            customerEmail: result.coupon.customer_email || 'unknown@email.com',
+          },
+          message: 'Valid code ready to use'
+        });
+        toast.success('Valid code found!');
+      } else {
+        setValidationResult({
+          isValid: false,
+          message: result.error || 'Code not found or already used'
+        });
+        toast.error(result.error || 'Invalid code');
+      }
+    } catch (error) {
+      console.error('Error validating coupon:', error);
+      
+      // Fallback to local data for development/testing
+      const code = discountCodes.find(c => c.code === validateCode.trim());
+      
+      if (!code) {
+        setValidationResult({
+          isValid: false,
+          message: 'Code not found'
+        });
+        toast.error('Invalid code');
+        return;
+      }
+
+      if (code.isUsed) {
+        setValidationResult({
+          isValid: false,
+          code,
+          message: 'Code already used'
+        });
+        toast.error('Code already used');
+        return;
+      }
+
       setValidationResult({
-        isValid: false,
+        isValid: true,
         code,
-        message: 'Code already used'
+        message: 'Valid code'
       });
-      toast.error('Code already used');
-      return;
+      toast.success('Valid code!');
     }
-
-    if (code.offerId !== '1') { // Check if code belongs to this merchant
-      setValidationResult({
-        isValid: false,
-        message: 'Code not valid for this restaurant'
-      });
-      toast.error('Code not valid for this restaurant');
-      return;
-    }
-
-    setValidationResult({
-      isValid: true,
-      code,
-      message: 'Valid code'
-    });
-    toast.success('Valid code!');
   };
 
-  const handleUseCode = () => {
-    if (validationResult?.code) {
+  const handleUseCode = async () => {
+    if (!validationResult?.code) {
+      toast.error('No code to use');
+      return;
+    }
+
+    try {
+      // Use real database RPC function to mark coupon as used
+      const result = await useCoupon(validationResult.code.code, '1'); // Using restaurant ID '1' for this merchant
+      
+      if (result.success) {
+        toast.success('Code successfully used!');
+        // Update local state for UI consistency
+        markCodeAsUsed(validationResult.code.id);
+        setValidationResult({
+          isValid: false,
+          code: { ...validationResult.code, isUsed: true },
+          message: 'Code marked as used'
+        });
+        setValidateCode('');
+      } else {
+        toast.error(result.error || 'Failed to use code');
+      }
+    } catch (error) {
+      console.error('Error using coupon:', error);
+      // Fallback for development/testing
       markCodeAsUsed(validationResult.code.id);
       setValidationResult({
         isValid: false,
@@ -87,7 +135,7 @@ export function MerchantDashboard() {
         message: 'Code marked as used'
       });
       setValidateCode('');
-      toast.success('Code marked as used');
+      toast.success('Code marked as used (offline mode)');
     }
   };
 

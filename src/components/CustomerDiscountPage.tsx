@@ -211,13 +211,33 @@ export function CustomerDiscountPage() {
             {/* Offer Details */}
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-6 mb-8">
               <div className="flex items-center">
-                <img 
-                  src={offer.image} 
-                  alt={offer.name}
-                  className="w-16 h-16 rounded-lg object-cover mr-4"
-                />
+                <div className="relative">
+                  <img 
+                    src={offer.image} 
+                    alt={offer.restaurant_name || offer.name}
+                    className="w-16 h-16 rounded-lg object-cover mr-4"
+                  />
+                  {/* Restaurant Logo overlay */}
+                  {offer.logo_url && (
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-white rounded-full shadow-sm flex items-center justify-center border border-gray-200">
+                      <img
+                        src={offer.logo_url}
+                        alt={`${offer.restaurant_name || offer.name} logo`}
+                        className="w-4 h-4 object-contain rounded-full"
+                      />
+                    </div>
+                  )}
+                </div>
                 <div>
-                  <h3 className="text-lg text-gray-900">{offer.name}</h3>
+                  {/* Show restaurant name and offer name separately if available */}
+                  {offer.restaurant_name ? (
+                    <div>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">{offer.restaurant_name}</p>
+                      <h3 className="text-lg text-gray-900">{offer.offer_name || offer.name}</h3>
+                    </div>
+                  ) : (
+                    <h3 className="text-lg text-gray-900">{offer.name}</h3>
+                  )}
                   <p className="text-blue-600">Save {offer.discount}%</p>
                   <p className="text-sm text-gray-600">{offer.description}</p>
                 </div>
