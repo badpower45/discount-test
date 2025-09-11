@@ -8,6 +8,7 @@ interface MerchantData {
   email: string;
   restaurant_id: string;
   restaurant_name?: string;
+  role: 'merchant' | 'admin';
 }
 
 interface AuthContextType {
@@ -15,6 +16,7 @@ interface AuthContextType {
   merchant: MerchantData | null;
   session: Session | null;
   loading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
@@ -34,6 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // Get initial session
@@ -64,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await fetchMerchantData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setMerchant(null);
+        setIsAdmin(false);
       }
       
       setLoading(false);
@@ -83,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name,
           email,
           restaurant_id,
+          role,
           restaurants(restaurant_name)
         `)
         .eq('auth_user_id', userId)
@@ -94,13 +99,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data) {
-        setMerchant({
+        const merchantData = {
           id: data.id,
           name: data.name,
           email: data.email,
           restaurant_id: data.restaurant_id,
-          restaurant_name: data.restaurants?.restaurant_name
-        });
+          restaurant_name: data.restaurants?.restaurant_name,
+          role: data.role || 'merchant'
+        };
+        setMerchant(merchantData);
+        setIsAdmin(merchantData.role === 'admin');
       }
     } catch (error) {
       console.error('Error in fetchMerchantData:', error);
@@ -127,6 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setMerchant(null);
       setSession(null);
+      setIsAdmin(false);
     } catch (error) {
       console.error('Sign out error:', error);
     }
@@ -137,6 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     merchant,
     session,
     loading,
+    isAdmin,
     signIn,
     signOut
   };

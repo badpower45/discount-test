@@ -5,6 +5,7 @@ import { CustomerDiscountPage } from './components/CustomerDiscountPage';
 import { MerchantDashboard } from './components/MerchantDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LoginPage } from './components/LoginPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { SupabaseTest } from './components/SupabaseTest';
 import { SimpleTest } from './components/SimpleTest';
 import { Toaster } from './components/ui/toaster';
@@ -164,8 +165,16 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
               <Route path="/merchant-login" element={<LoginPage />} />
-              <Route path="/merchant" element={<MerchantDashboard />} />
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/merchant" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <MerchantDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
               <Route path="/test" element={<SupabaseTest />} />
               <Route path="/react-test" element={<SimpleTest />} />
               <Route path="*" element={<LandingPage />} />
