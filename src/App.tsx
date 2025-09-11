@@ -4,6 +4,8 @@ import { LandingPage } from './components/LandingPage';
 import { CustomerDiscountPage } from './components/CustomerDiscountPage';
 import { MerchantDashboard } from './components/MerchantDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
+import { SupabaseTest } from './components/SupabaseTest';
+import { SimpleTest } from './components/SimpleTest';
 import { Toaster } from './components/ui/toaster';
 
 // App state type
@@ -150,6 +152,8 @@ export default function App() {
             <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
             <Route path="/merchant" element={<MerchantDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/test" element={<SupabaseTest />} />
+            <Route path="/react-test" element={<SimpleTest />} />
             <Route path="*" element={<LandingPage />} />
           </Routes>
           <Toaster />

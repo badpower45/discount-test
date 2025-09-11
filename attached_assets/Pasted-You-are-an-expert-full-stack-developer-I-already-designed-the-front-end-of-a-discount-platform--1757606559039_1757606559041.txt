@@ -1,0 +1,45 @@
+You are an expert full-stack developer.  
+I already designed the front-end of a discount platform (similar to Waffarha) in Figma and connected the project with Supabase, but the database and backend logic are not complete yet.  
+I want you to generate clean, production-ready code in JavaScript/React (Next.js or React with Vite) that I can run on Replit.  
+
+Here is what I need you to implement:
+
+1. Supabase Setup:
+   - Connect to my Supabase project using environment variables (SUPABASE_URL and SUPABASE_KEY).
+   - Create the following tables if they don’t exist:
+     - `restaurants` (id, name, address, phone, created_at).
+     - `users` (id, name, email, phone, created_at).
+     - `coupons` (id, code, user_id, restaurant_id, status [unused/used], created_at, used_at).
+
+2. User Flow (Customer Page):
+   - Show list of restaurants and their discounts.
+   - When a user clicks “Get Discount”, ask them to enter their details (name, email, phone).
+   - Save the user in the `users` table if not already existing.
+   - Generate a unique coupon code (random string or number).
+   - Save the coupon in the `coupons` table with status = “unused”.
+   - Show the user their coupon code.
+
+3. Merchant Flow (Merchant Page):
+   - Provide a simple input field where the restaurant staff can enter a coupon code.
+   - When the code is entered, check Supabase:
+     - If status = “unused” → mark it as “used” and store `used_at = NOW()`.
+     - If status = “used” → show “Code already used”.
+     - If not found → show “Invalid code”.
+
+4. Admin Dashboard (My Page):
+   - Show all users who registered and their coupons.
+   - Show all restaurants and coupon usage stats (total codes, used vs unused).
+   - Simple table views with pagination.
+
+5. Tech Stack:
+   - React for UI (you can use TailwindCSS for styling).
+   - Supabase client for database actions.
+   - Keep code modular and readable.
+   - Deploy-ready so I can later push to Vercel or Netlify.
+
+Output:
+- A complete working project with frontend + backend logic integrated.
+- Include all pages (User page, Merchant page, Admin page).
+- Use `.env` file for Supabase keys.
+- Explain in comments how to run it on Replit.
+

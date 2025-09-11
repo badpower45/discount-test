@@ -95,8 +95,8 @@ export function MerchantDashboard() {
   const usedCodes = merchantCodes.filter(code => code.isUsed).length;
   const unusedCodes = totalCodes - usedCodes;
 
-  const SidebarMenu = () => (
-    <Sidebar>
+  const MerchantSidebarMenu = () => (
+    <Sidebar className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
       <SidebarContent>
         <div className="p-4">
           <div className="flex items-center mb-6">
@@ -388,9 +388,9 @@ export function MerchantDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">
-        <SidebarMenu />
+        <MerchantSidebarMenu />
         
-        <div className="flex-1">
+        <div className="flex-1 ml-64">
           <header className="bg-white border-b border-gray-200 p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">

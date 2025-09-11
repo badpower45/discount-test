@@ -1,34 +1,30 @@
 import { createClient } from '@supabase/supabase-js'
 
-let supabaseInstance: any = null
+// Get environment variables from Replit Secrets via Vite define
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 
+                   (process.env as any)?.SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 
+                       (process.env as any)?.SUPABASE_ANON_KEY
 
-export const getSupabaseClient = () => {
-  if (!supabaseInstance) {
-    const supabaseUrl = (import.meta.env as any).VITE_SUPABASE_URL
-    const supabaseAnonKey = (import.meta.env as any).VITE_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn('Missing Supabase environment variables. Using mock client.')
-      // Return a mock client for development
-      return {
-        from: () => ({ select: () => ({ data: [], error: null }) }),
-        auth: { user: null }
-      }
-    }
-
-    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)
-  }
-  
-  return supabaseInstance
-}
-
-// For backwards compatibility - lazy initialization
-let _supabase: any = null
-export const supabase = new Proxy({}, {
-  get(target, prop) {
-    if (!_supabase) {
-      _supabase = getSupabaseClient()
-    }
-    return _supabase[prop]
-  }
+console.log('🔧 Supabase Configuration:', { 
+  hasUrl: !!supabaseUrl, 
+  hasKey: !!supabaseAnonKey,
+  urlPrefix: supabaseUrl?.substring(0, 30) + '...' 
 })
+
+// Create Supabase client
+export const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : (() => {
+      console.warn('❌ Missing Supabase credentials - some features will not work')
+      // Return minimal mock for development
+      return {
+        from: () => ({ 
+          select: () => Promise.resolve({ data: [], error: null }),
+          insert: () => Promise.resolve({ data: null, error: null }),
+          update: () => Promise.resolve({ data: null, error: null }),
+          delete: () => Promise.resolve({ error: null })
+        }),
+        auth: { user: null }
+      } as any
+    })()
