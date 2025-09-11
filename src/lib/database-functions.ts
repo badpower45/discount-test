@@ -209,6 +209,25 @@ export const useCoupon = async (
   }
 };
 
+// Function to fetch restaurant coupons
+export const fetchRestaurantCoupons = async (restaurantId: string) => {
+  try {
+    const { data, error } = await supabase.rpc('get_restaurant_coupons', {
+      restaurant_id: restaurantId
+    });
+    
+    if (error) {
+      console.error('Error fetching restaurant coupons:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchRestaurantCoupons:', err);
+    return [];
+  }
+};
+
 // Statistics functions for admin dashboard
 export const fetchDashboardStats = async () => {
   try {

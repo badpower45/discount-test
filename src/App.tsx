@@ -4,9 +4,11 @@ import { LandingPage } from './components/LandingPage';
 import { CustomerDiscountPage } from './components/CustomerDiscountPage';
 import { MerchantDashboard } from './components/MerchantDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
+import { LoginPage } from './components/LoginPage';
 import { SupabaseTest } from './components/SupabaseTest';
 import { SimpleTest } from './components/SimpleTest';
 import { Toaster } from './components/ui/toaster';
+import { AuthProvider } from './contexts/AuthContext';
 import { fetchRestaurants, subscribeToTables } from './lib/database-functions';
 import type { Restaurant } from './lib/database-functions';
 
@@ -154,21 +156,24 @@ function AppProvider({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <AppProvider>
-      <Router>
-        <div className="min-h-screen bg-white">
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
-            <Route path="/merchant" element={<MerchantDashboard />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/test" element={<SupabaseTest />} />
-            <Route path="/react-test" element={<SimpleTest />} />
-            <Route path="*" element={<LandingPage />} />
-          </Routes>
-          <Toaster />
-        </div>
-      </Router>
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <Router>
+          <div className="min-h-screen bg-white">
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
+              <Route path="/merchant-login" element={<LoginPage />} />
+              <Route path="/merchant" element={<MerchantDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/test" element={<SupabaseTest />} />
+              <Route path="/react-test" element={<SimpleTest />} />
+              <Route path="*" element={<LandingPage />} />
+            </Routes>
+            <Toaster />
+          </div>
+        </Router>
+      </AppProvider>
+    </AuthProvider>
   );
 }

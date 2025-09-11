@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { AppContext } from '../App';
 import { Button } from './ui/button';
@@ -18,27 +18,118 @@ import {
   XCircle,
   Calendar,
   TrendingUp,
-  ArrowLeft
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { validateCoupon, useCoupon } from '../lib/database-functions';
+import { validateCoupon, useCoupon, fetchRestaurantCoupons } from '../lib/database-functions';
+import { useAuth } from '../contexts/AuthContext';
 
 export function MerchantDashboard() {
   const navigate = useNavigate();
   const { discountCodes, markCodeAsUsed } = useContext(AppContext);
+  const { user, merchant, signOut, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [validateCode, setValidateCode] = useState('');
+  const [realCoupons, setRealCoupons] = useState<any[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(true);
   const [validationResult, setValidationResult] = useState<{
     isValid: boolean;
     code?: any;
     message: string;
   } | null>(null);
 
-  // Mock merchant data - in real app this would come from auth
-  const merchantName = "Gourmet Bistro";
-  const merchantCodes = discountCodes.filter(code => 
-    code.offerId === '1' // Assuming this merchant owns offer with ID 1
-  );
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/merchant-login');
+    }
+  }, [user, loading, navigate]);
+
+  // Fetch real coupons for this merchant's restaurant
+  useEffect(() => {
+    if (merchant?.restaurant_id) {
+      fetchMerchantCoupons();
+    }
+  }, [merchant]);
+
+  const fetchMerchantCoupons = async () => {
+    if (!merchant?.restaurant_id) return;
+    
+    try {
+      setLoadingCoupons(true);
+      // Fetch real coupons from database
+      const coupons = await fetchRestaurantCoupons(merchant.restaurant_id);
+      
+      // Convert to format expected by UI
+      const formattedCoupons = coupons.map(coupon => ({
+        id: coupon.coupon_id,
+        code: coupon.code,
+        customerId: coupon.customer_name,
+        customerName: coupon.customer_name,
+        customerEmail: coupon.customer_email,
+        customerPhone: coupon.customer_phone,
+        offerId: merchant.restaurant_id,
+        isUsed: coupon.status === 'used',
+        createdAt: new Date(coupon.created_at),
+        usedAt: coupon.used_at ? new Date(coupon.used_at) : undefined
+      }));
+      
+      setRealCoupons(formattedCoupons);
+      console.log('✅ Loaded', formattedCoupons.length, 'coupons for restaurant');
+    } catch (error) {
+      console.error('Error fetching merchant coupons:', error);
+      toast.error('خطأ في تحميل الكوبونات');
+      
+      // Fallback to existing mock data
+      const merchantCodes = discountCodes.filter(code => 
+        code.offerId === merchant.restaurant_id
+      );
+      setRealCoupons(merchantCodes);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('تم تسجيل الخروج بنجاح');
+      navigate('/merchant-login');
+    } catch (error) {
+      toast.error('خطأ في تسجيل الخروج');
+    }
+  };
+
+  // Show loading if still authenticating
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!user || !merchant) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <h2 className="text-xl font-semibold mb-4">يجب تسجيل الدخول</h2>
+            <p className="text-gray-600 mb-4">يجب عليك تسجيل الدخول للوصول إلى لوحة التحكم</p>
+            <Button onClick={() => navigate('/merchant-login')}>تسجيل الدخول</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const merchantName = merchant.restaurant_name || merchant.name;
+  const merchantCodes = realCoupons;
 
   const handleValidateCode = async () => {
     if (!validateCode.trim()) {
@@ -48,7 +139,7 @@ export function MerchantDashboard() {
 
     try {
       // Use real database RPC function to validate coupon
-      const result = await validateCoupon(validateCode.trim(), '1'); // Using restaurant ID '1' for this merchant
+      const result = await validateCoupon(validateCode.trim(), merchant.restaurant_id);
       
       if (result.success && result.coupon) {
         setValidationResult({
@@ -110,7 +201,7 @@ export function MerchantDashboard() {
 
     try {
       // Use real database RPC function to mark coupon as used
-      const result = await useCoupon(validationResult.code.code, '1'); // Using restaurant ID '1' for this merchant
+      const result = await useCoupon(validationResult.code.code, merchant.restaurant_id);
       
       if (result.success) {
         toast.success('Code successfully used!');
@@ -195,6 +286,15 @@ export function MerchantDashboard() {
                 >
                   <Settings className="w-4 h-4" />
                   Settings
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={handleLogout}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <LogOut className="w-4 h-4" />
+                  تسجيل الخروج
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

@@ -1,6 +1,7 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { AppContext } from '../App';
+import { fetchDashboardStats } from '../lib/database-functions';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -23,11 +24,45 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const { offers, discountCodes, customers } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [realStats, setRealStats] = useState({
+    totalRestaurants: 0,
+    totalCustomers: 0,
+    totalCoupons: 0,
+    usedCoupons: 0,
+    unusedCoupons: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
-  const totalRestaurants = offers.length;
-  const totalCustomers = customers.length;
-  const totalCouponsGenerated = discountCodes.length;
-  const totalCouponsUsed = discountCodes.filter(code => code.isUsed).length;
+  // Fetch real statistics from database
+  useEffect(() => {
+    loadDashboardStats();
+  }, []);
+
+  const loadDashboardStats = async () => {
+    try {
+      setLoadingStats(true);
+      const stats = await fetchDashboardStats();
+      setRealStats(stats);
+      console.log('✅ Loaded admin dashboard stats:', stats);
+    } catch (error) {
+      console.error('Error loading admin stats:', error);
+      // Fallback to local data
+      setRealStats({
+        totalRestaurants: offers.length,
+        totalCustomers: customers.length,
+        totalCoupons: discountCodes.length,
+        usedCoupons: discountCodes.filter(code => code.isUsed).length,
+        unusedCoupons: discountCodes.filter(code => !code.isUsed).length
+      });
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const totalRestaurants = realStats.totalRestaurants;
+  const totalCustomers = realStats.totalCustomers;
+  const totalCouponsGenerated = realStats.totalCoupons;
+  const totalCouponsUsed = realStats.usedCoupons;
 
   const AdminSidebarMenu = () => (
     <Sidebar className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200">
