@@ -29,7 +29,7 @@ export function AdminDashboard() {
   const totalCouponsGenerated = discountCodes.length;
   const totalCouponsUsed = discountCodes.filter(code => code.isUsed).length;
 
-  const SidebarMenu = () => (
+  const AdminSidebarMenu = () => (
     <Sidebar>
       <SidebarContent>
         <div className="p-4">
@@ -46,7 +46,7 @@ export function AdminDashboard() {
         
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="">
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setActiveTab('dashboard')}
@@ -468,7 +468,7 @@ export function AdminDashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">
-        <SidebarMenu />
+        <AdminSidebarMenu />
         
         <div className="flex-1">
           <header className="bg-white border-b border-gray-200 p-4">
