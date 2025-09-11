@@ -10,8 +10,11 @@ CREATE TYPE restaurant_category AS ENUM ('restaurant', 'cafe', 'bakery', 'other'
 -- Create restaurants table
 CREATE TABLE restaurants (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL, -- Generic name field (used for offer name)
+    restaurant_name TEXT, -- Specific restaurant name
+    offer_name TEXT, -- Specific offer name
     image_url TEXT NOT NULL,
+    logo_url TEXT, -- Restaurant logo URL
     discount_percentage INTEGER NOT NULL CHECK (discount_percentage > 0 AND discount_percentage <= 100),
     description TEXT NOT NULL,
     category restaurant_category NOT NULL DEFAULT 'other',

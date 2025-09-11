@@ -110,7 +110,7 @@ export function LandingPage() {
                 <div className="relative">
                   <img 
                     src={offer.image} 
-                    alt={offer.name}
+                    alt={offer.restaurant_name || offer.name}
                     className="w-full h-48 object-cover"
                   />
                   <Badge 
@@ -118,10 +118,28 @@ export function LandingPage() {
                   >
                     -{offer.discount}%
                   </Badge>
+                  {/* Restaurant Logo */}
+                  {offer.logo_url && (
+                    <div className="absolute top-3 left-3 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-white">
+                      <img
+                        src={offer.logo_url}
+                        alt={`${offer.restaurant_name || offer.name} logo`}
+                        className="w-8 h-8 object-contain rounded-full"
+                      />
+                    </div>
+                  )}
                 </div>
                 
                 <CardContent className="p-6">
-                  <h3 className="text-lg text-gray-900 mb-2">{offer.name}</h3>
+                  {/* Show restaurant name and offer name separately if available */}
+                  {offer.restaurant_name ? (
+                    <div className="mb-2">
+                      <h4 className="text-sm text-gray-500 uppercase tracking-wide">{offer.restaurant_name}</h4>
+                      <h3 className="text-lg text-gray-900 font-semibold">{offer.offer_name || offer.name}</h3>
+                    </div>
+                  ) : (
+                    <h3 className="text-lg text-gray-900 mb-2">{offer.name}</h3>
+                  )}
                   <p className="text-gray-600 mb-4">{offer.description}</p>
                   
                   <div className="flex items-center justify-between mb-4">

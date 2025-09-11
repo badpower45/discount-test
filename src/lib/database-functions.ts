@@ -3,8 +3,11 @@ import { supabase } from './supabase';
 // Database types
 export interface Restaurant {
   id: string;
-  name: string;
+  name: string; // Generic name (used for offer name for backward compatibility)
+  restaurant_name?: string; // Specific restaurant name
+  offer_name?: string; // Specific offer name  
   image_url: string;
+  logo_url?: string; // Restaurant logo URL
   discount_percentage: number;
   description: string;
   category: 'restaurant' | 'cafe' | 'bakery' | 'other';
@@ -33,7 +36,10 @@ export interface Coupon {
 const mockRestaurants: Restaurant[] = [
   {
     id: '1',
-    name: 'Gourmet Bistro',
+    name: 'Special Dinner Offer', // Offer name
+    restaurant_name: 'Gourmet Bistro', // Restaurant name
+    offer_name: 'Special Dinner Offer', // Specific offer
+    logo_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dvJTIwcmVzdGF1cmFudHxlbnwwfHx8fDE3NTc1ODE5MTN8MA&ixlib=rb-4.1.0&q=80&w=200&utm_source=figma&utm_medium=referral',
     image_url: 'https://images.unsplash.com/photo-1667388968964-4aa652df0a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRpbmluZ3xlbnwxfHx8fDE3NTc1ODE5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     discount_percentage: 30,
     description: 'Valid for dine-in or delivery',
@@ -42,7 +48,10 @@ const mockRestaurants: Restaurant[] = [
   },
   {
     id: '2',
-    name: 'Cozy Corner Cafe',
+    name: 'Morning Coffee Deal', // Offer name
+    restaurant_name: 'Cozy Corner Cafe', // Restaurant name  
+    offer_name: 'Morning Coffee Deal', // Specific offer
+    logo_url: 'https://images.unsplash.com/photo-1493857671505-72967e2e2760?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWZlJTIwbG9nb3xlbnwwfHx8fDE3NTc1OTY4NDl8MA&ixlib=rb-4.1.0&q=80&w=200&utm_source=figma&utm_medium=referral',
     image_url: 'https://images.unsplash.com/photo-1682979358243-816a75830f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWZlJTIwY29mZmVlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzU3NTk2ODQ5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     discount_percentage: 25,
     description: 'All beverages and pastries',
@@ -51,7 +60,10 @@ const mockRestaurants: Restaurant[] = [
   },
   {
     id: '3',
-    name: 'Mario\'s Pizza Palace',
+    name: 'Pizza Family Pack', // Offer name
+    restaurant_name: 'Mario\'s Pizza Palace', // Restaurant name
+    offer_name: 'Pizza Family Pack', // Specific offer
+    logo_url: 'https://images.unsplash.com/photo-1571066811602-716837d681de?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGxvZ298ZW58MHx8fHwxNzU3NTI3NTA0fDA&ixlib=rb-4.1.0&q=80&w=200&utm_source=figma&utm_medium=referral',
     image_url: 'https://images.unsplash.com/photo-1563245738-9169ff58eccf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMHJlc3RhdXJhbnR8ZW58MXx8fHwxNzU3NTI3NTA0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     discount_percentage: 40,
     description: 'Pizza and Italian dishes',
