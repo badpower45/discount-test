@@ -117,15 +117,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // Simple authentication for development - check merchant exists
+      const { data: merchantData, error } = await supabase
+        .from('merchants')
+        .select(`
+          id,
+          name,
+          email,
+          restaurant_id,
+          role,
+          restaurants(restaurant_name)
+        `)
+        .eq('email', email)
+        .single();
+
+      if (error || !merchantData) {
+        return { error: { message: 'البريد الإلكتروني غير صحيح أو غير مسجل' } };
+      }
+
+      // Check password (simple check for demo - use proper auth in production)
+      if (password !== 'password123') {
+        return { error: { message: 'كلمة المرور غير صحيحة' } };
+      }
+
+      // Create mock user session for successful login
+      const mockUser = { 
+        id: merchantData.id, 
+        email: merchantData.email,
+        aud: 'authenticated',
+        role: 'authenticated'
+      } as User;
+
+      // Set merchant data
+      const merchant = {
+        id: merchantData.id,
+        name: merchantData.name,
+        email: merchantData.email,
+        restaurant_id: merchantData.restaurant_id,
+        restaurant_name: merchantData.restaurants?.restaurant_name,
+        role: merchantData.role || 'merchant'
+      };
+
+      setUser(mockUser);
+      setMerchant(merchant);
+      setIsAdmin(merchant.role === 'admin');
       
-      return { error };
+      return { error: null };
     } catch (error) {
       console.error('Sign in error:', error);
-      return { error };
+      return { error: { message: 'حدث خطأ أثناء تسجيل الدخول' } };
     }
   };
 
