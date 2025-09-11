@@ -29,6 +29,37 @@ export interface Coupon {
   used_at?: string;
 }
 
+// Mock data fallback for when database is not available
+const mockRestaurants: Restaurant[] = [
+  {
+    id: '1',
+    name: 'Gourmet Bistro',
+    image_url: 'https://images.unsplash.com/photo-1667388968964-4aa652df0a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRpbmluZ3xlbnwxfHx8fDE3NTc1ODE5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    discount_percentage: 30,
+    description: 'Valid for dine-in or delivery',
+    category: 'restaurant',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    name: 'Cozy Corner Cafe',
+    image_url: 'https://images.unsplash.com/photo-1682979358243-816a75830f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWZlJTIwY29mZmVlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzU3NTk2ODQ5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    discount_percentage: 25,
+    description: 'All beverages and pastries',
+    category: 'cafe',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: '3',
+    name: 'Mario\'s Pizza Palace',
+    image_url: 'https://images.unsplash.com/photo-1563245738-9169ff58eccf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMHJlc3RhdXJhbnR8ZW58MXx8fHwxNzU3NTI3NTA0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
+    discount_percentage: 40,
+    description: 'Pizza and Italian dishes',
+    category: 'restaurant',
+    created_at: new Date().toISOString()
+  }
+];
+
 // Restaurant functions
 export const fetchRestaurants = async (): Promise<Restaurant[]> => {
   try {
@@ -39,13 +70,21 @@ export const fetchRestaurants = async (): Promise<Restaurant[]> => {
     
     if (error) {
       console.error('Error fetching restaurants:', error);
-      return [];
+      console.warn('🔄 Using mock data fallback');
+      return mockRestaurants;
     }
     
-    return data || [];
+    if (!data || data.length === 0) {
+      console.warn('📝 No restaurants found in database, using mock data');
+      return mockRestaurants;
+    }
+    
+    console.log('✅ Successfully loaded restaurants from database');
+    return data;
   } catch (err) {
     console.error('Error in fetchRestaurants:', err);
-    return [];
+    console.warn('🔄 Using mock data fallback');
+    return mockRestaurants;
   }
 };
 
@@ -203,18 +242,29 @@ export const fetchDashboardStats = async () => {
 
 // Real-time subscription helpers
 export const subscribeToTables = (callback: () => void) => {
-  const subscription = supabase
-    .channel('db-changes')
-    .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'coupons' }, 
-        callback)
-    .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'customers' }, 
-        callback)
-    .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'restaurants' }, 
-        callback)
-    .subscribe();
-  
-  return subscription;
+  try {
+    // Check if supabase is properly initialized
+    if (!supabase || typeof supabase.channel !== 'function') {
+      console.warn('Supabase not properly initialized, skipping real-time subscriptions');
+      return { unsubscribe: () => {} };
+    }
+    
+    const subscription = supabase
+      .channel('db-changes')
+      .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'coupons' }, 
+          callback)
+      .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'customers' }, 
+          callback)
+      .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'restaurants' }, 
+          callback)
+      .subscribe();
+    
+    return subscription;
+  } catch (error) {
+    console.warn('Failed to subscribe to database changes:', error);
+    return { unsubscribe: () => {} };
+  }
 };

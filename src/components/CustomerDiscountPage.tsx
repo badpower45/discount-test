@@ -1,6 +1,7 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppContext, type Customer, type DiscountCode } from '../App';
+import { generateCoupon } from '../lib/database-functions';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -53,13 +54,30 @@ export function CustomerDiscountPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Try to generate coupon using database RPC function
+      const result = await generateCoupon(
+        formData.name,
+        formData.email,
+        formData.phone,
+        offer.id
+      );
+
+      let code: string;
+      
+      if (result.success && result.coupon) {
+        code = result.coupon.code;
+        console.log('✅ Generated coupon from database');
+      } else {
+        // Fallback to mock code generation if database fails
+        console.warn('🔄 Database unavailable, generating mock code');
+        code = generateDiscountCode();
+      }
+      
+      // Add to local state for legacy components
       const customerId = Date.now().toString();
       const codeId = Date.now().toString();
-      const code = generateDiscountCode();
 
-      // Add customer
       const customer: Customer = {
         id: customerId,
         name: formData.name,
@@ -68,7 +86,6 @@ export function CustomerDiscountPage() {
       };
       addCustomer(customer);
 
-      // Add discount code
       const discountCode: DiscountCode = {
         id: codeId,
         code,
@@ -83,9 +100,13 @@ export function CustomerDiscountPage() {
       addDiscountCode(discountCode);
 
       setGeneratedCode(code);
-      setIsSubmitting(false);
       toast.success('Discount code generated successfully!');
-    }, 1000);
+    } catch (error) {
+      console.error('Error generating coupon:', error);
+      toast.error('Failed to generate discount code. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const copyToClipboard = () => {

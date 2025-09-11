@@ -43,9 +43,9 @@ export interface Customer {
   phone: string;
 }
 
-// Context for app state
+// Context for app state (using compatible format)
 export const AppContext = React.createContext<{
-  offers: Restaurant[];
+  offers: (Restaurant & { image: string; discount: number })[];
   loading: boolean;
   refreshOffers: () => void;
   discountCodes: DiscountCode[];
@@ -64,10 +64,15 @@ export const AppContext = React.createContext<{
   addCustomer: () => {},
 });
 
-// Note: Now using Restaurant type directly from database
+// Convert Restaurant to Offer format for backward compatibility
+const convertRestaurantToOffer = (restaurant: Restaurant): Restaurant & { image: string; discount: number } => ({
+  ...restaurant,
+  image: restaurant.image_url,
+  discount: restaurant.discount_percentage
+});
 
 function AppProvider({ children }: { children: React.ReactNode }) {
-  const [offers, setOffers] = useState<Restaurant[]>([]);
+  const [offers, setOffers] = useState<(Restaurant & { image: string; discount: number })[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -76,14 +81,23 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     loadRestaurants();
     
-    // Subscribe to database changes for real-time updates
-    const subscription = subscribeToTables(() => {
-      console.log('Database change detected, refreshing data...');
-      loadRestaurants();
-    });
+    // Only subscribe if we have credentials to avoid connection errors
+    let subscription: any = null;
+    
+    try {
+      // Subscribe to database changes for real-time updates
+      subscription = subscribeToTables(() => {
+        console.log('Database change detected, refreshing data...');
+        loadRestaurants();
+      });
+    } catch (error) {
+      console.warn('Could not subscribe to database changes:', error);
+    }
     
     return () => {
-      subscription.unsubscribe();
+      if (subscription && subscription.unsubscribe) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
@@ -91,9 +105,12 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     try {
       const restaurants = await fetchRestaurants();
-      setOffers(restaurants);
+      // Convert restaurants to compatible format
+      const compatibleOffers = restaurants.map(convertRestaurantToOffer);
+      setOffers(compatibleOffers);
     } catch (error) {
       console.error('Failed to load restaurants:', error);
+      // Keep loading false so UI doesn't hang
     } finally {
       setLoading(false);
     }
