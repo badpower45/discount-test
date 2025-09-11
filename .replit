@@ -39,5 +39,5 @@ externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["npx", "serve", "-s", "build"]
+run = ["npx", "serve", "build", "-s", "-l", "5000"]
 build = ["npm", "run", "build"]

@@ -60,5 +60,8 @@
       strictPort: true,
       open: false,
       allowedHosts: true,
+      hmr: {
+        port: 5000,
+      },
     },
   });
