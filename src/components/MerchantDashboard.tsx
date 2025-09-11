@@ -20,7 +20,7 @@ import {
   TrendingUp,
   ArrowLeft
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 export function MerchantDashboard() {
   const navigate = useNavigate();
@@ -112,7 +112,7 @@ export function MerchantDashboard() {
         
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="">
               <SidebarMenuItem>
                 <SidebarMenuButton 
                   onClick={() => setActiveTab('dashboard')}
