@@ -1,0 +1,65 @@
+شخيص المشكلة
+المشكلة الأساسية تكمن في أن نظام تسجيل الدخول الحالي في الكود هو نظام تجريبي (Mock/Demo) ولا يستخدم نظام المصادقة (Authentication) الفعلي الخاص بـ Supabase.
+
+عندما ننظر إلى ملف src/contexts/AuthContext.tsx، نجد أن دالة signIn لا تتصل فعليًا بـ Supabase للتحقق من كلمة المرور التي أدخلتها، بل تقوم بالآتي:
+
+تبحث في جدول اسمه merchants عن الإيميل الذي أدخلته.
+
+تقوم بالتحقق مما إذا كانت كلمة المرور التي أدخلتها هي password123 بشكل ثابت في الكود.
+
+TypeScript
+
+// src/contexts/AuthContext.tsx - (الكود الحالي)
+
+// ...
+      // Check password (simple check for demo - use proper auth in production)
+      if (password !== 'password123') {
+        return { error: { message: 'كلمة المرور غير صحيحة' } };
+      }
+// ...
+لهذا السبب، حتى لو قمت بإنشاء مستخدم بكلمة مرور مختلفة في قسم "Authentication" في Supabase، لن تتم عملية تسجيل الدخول بنجاح لأن الكود لا يتحقق من هناك أصلًا، بل يقارن دائمًا بكلمة المرور الثابتة password123.
+
+الحل: تعديل دالة تسجيل الدخول
+لحل هذه المشكلة، نحتاج إلى استبدال دالة signIn التجريبية بالدالة الحقيقية التي توفرها مكتبة Supabase للتأكد من صحة الإيميل وكلمة المرور.
+
+الخطوات:
+
+افتح ملف src/contexts/AuthContext.tsx.
+
+ابحث عن دالة signIn.
+
+استبدل الكود الحالي للدالة بالكود التالي:
+
+TypeScript
+
+  const signIn = async (email: string, password: string) => {
+    try {
+      // استخدام دالة تسجيل الدخول الحقيقية من Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        // إذا كان هناك خطأ، قم بإرجاعه لعرضه للمستخدم
+        return { error };
+      }
+      
+      // إذا نجح تسجيل الدخول، ستقوم دالة onAuthStateChange تلقائيًا بتحديث بيانات المستخدم
+      // لا داعي لإجراء أي شيء إضافي هنا
+      return { error: null };
+
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { error: { message: 'حدث خطأ غير متوقع أثناء تسجيل الدخول' } };
+    }
+  };
+لماذا هذا الحل هو الصحيح؟
+
+الكود الجديد يستخدم supabase.auth.signInWithPassword، وهي الطريقة الرسمية والصحيحة لتسجيل دخول المستخدمين في Supabase.
+
+هذه الدالة ستقوم بالتحقق من المستخدم الذي قمت بإنشائه في قسم "Authentication" في لوحة تحكم Supabase.
+
+بعد تسجيل الدخول بنجاح، سيتم تفعيل onAuthStateChange الموجود بنفس الملف تلقائيًا، والذي سيقوم بدوره بجلب بيانات التاجر من جدول merchants وربطها بالمستخدم.
+
+بعد تطبيق هذا التعديل ورفعه إلى Netlify، يجب أن تعمل صفحة تسجيل الدخول بشكل صحيح باستخدام بيانات المستخدم الذي أنشأته في Supabase.
