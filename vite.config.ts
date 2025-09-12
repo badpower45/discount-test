@@ -59,7 +59,7 @@ import path from 'path';
     },
     build: {
       target: 'esnext',
-      outDir: 'build',
+      outDir: 'dist',
     },
     server: {
       host: '0.0.0.0',
