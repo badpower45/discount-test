@@ -32,6 +32,18 @@ CREATE TABLE customers (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
+-- Create merchants table for authentication
+CREATE TABLE merchants (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    restaurant_id UUID REFERENCES restaurants(id),
+    role TEXT NOT NULL DEFAULT 'merchant' CHECK (role IN ('merchant', 'admin')),
+    auth_user_id UUID UNIQUE, -- Links to Supabase Auth user
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
 -- Create coupons table
 CREATE TABLE coupons (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -49,6 +61,9 @@ CREATE INDEX idx_coupons_customer_id ON coupons(customer_id);
 CREATE INDEX idx_coupons_status ON coupons(status);
 CREATE INDEX idx_coupons_code ON coupons(code);
 CREATE INDEX idx_customers_email ON customers(email);
+CREATE INDEX idx_merchants_email ON merchants(email);
+CREATE INDEX idx_merchants_auth_user_id ON merchants(auth_user_id);
+CREATE INDEX idx_merchants_restaurant_id ON merchants(restaurant_id);
 
 -- Function to generate random coupon code
 CREATE OR REPLACE FUNCTION generate_coupon_code()
@@ -94,6 +109,7 @@ CREATE TRIGGER trigger_set_coupon_code
 ALTER TABLE restaurants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE merchants ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for restaurants table
 CREATE POLICY "Public can view restaurants" ON restaurants
@@ -106,6 +122,19 @@ CREATE POLICY "No direct access to customers" ON customers
 -- RLS Policies for coupons table (only accessible via RPC functions)
 CREATE POLICY "No direct access to coupons" ON coupons
     FOR ALL USING (false);
+
+-- RLS Policies for merchants table
+CREATE POLICY "Merchants can view themselves" ON merchants
+    FOR SELECT USING (auth_user_id = auth.uid());
+
+CREATE POLICY "Admins can view all merchants" ON merchants
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM merchants m 
+            WHERE m.auth_user_id = auth.uid() 
+            AND m.role = 'admin'
+        )
+    );
 
 -- RPC Function: Create or get existing customer
 CREATE OR REPLACE FUNCTION create_or_get_customer(
@@ -288,6 +317,62 @@ BEGIN
 END;
 $$;
 
+-- RPC Function: Fetch restaurant coupons
+CREATE OR REPLACE FUNCTION fetchRestaurantCoupons(restaurant_id UUID)
+RETURNS TABLE(
+    coupon_id UUID,
+    code TEXT,
+    customer_name TEXT,
+    customer_email TEXT,
+    customer_phone TEXT,
+    status coupon_status,
+    created_at TIMESTAMP WITH TIME ZONE,
+    used_at TIMESTAMP WITH TIME ZONE
+)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        c.id as coupon_id,
+        c.code,
+        cust.name as customer_name,
+        cust.email as customer_email,
+        cust.phone as customer_phone,
+        c.status,
+        c.created_at,
+        c.used_at
+    FROM coupons c
+    JOIN customers cust ON c.customer_id = cust.id
+    WHERE c.restaurant_id = fetchRestaurantCoupons.restaurant_id
+    ORDER BY c.created_at DESC;
+END;
+$$;
+
+-- RPC Function: Fetch dashboard statistics
+CREATE OR REPLACE FUNCTION fetchDashboardStats()
+RETURNS TABLE(
+    total_restaurants BIGINT,
+    total_customers BIGINT,
+    total_coupons BIGINT,
+    used_coupons BIGINT,
+    unused_coupons BIGINT
+)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        (SELECT COUNT(*) FROM restaurants) as total_restaurants,
+        (SELECT COUNT(*) FROM customers) as total_customers,
+        (SELECT COUNT(*) FROM coupons) as total_coupons,
+        (SELECT COUNT(*) FROM coupons WHERE status = 'used') as used_coupons,
+        (SELECT COUNT(*) FROM coupons WHERE status = 'unused') as unused_coupons;
+END;
+$$;
+
 -- Insert initial restaurant data
 INSERT INTO restaurants (name, image_url, discount_percentage, description, category) VALUES
 ('Gourmet Bistro', 'https://images.unsplash.com/photo-1667388968964-4aa652df0a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRpbmluZ3xlbnwxfHx8fDE3NTc1ODE5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 30, 'Valid for dine-in or delivery', 'restaurant'),
@@ -296,3 +381,27 @@ INSERT INTO restaurants (name, image_url, discount_percentage, description, cate
 ('The Burger Joint', 'https://images.unsplash.com/photo-1644447381290-85358ae625cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjByZXN0YXVyYW50fGVufDF8fHx8MTc1NzU4Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 20, 'Gourmet burgers and fries', 'restaurant'),
 ('Sweet Dreams Bakery', 'https://images.unsplash.com/photo-1670819916757-e8d5935a6c65?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwYmFrZXJ5fGVufDF8fHx8MTc1NzU5Njg1Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 15, 'Fresh baked goods daily', 'bakery'),
 ('Sakura Sushi', 'https://images.unsplash.com/photo-1717988732486-285ea23a6f88?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGphcGFuZXNlJTIwcmVzdGF1cmFudHxlbnwxfHx8fDE3NTc1MjY3NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 35, 'Authentic Japanese cuisine', 'restaurant');
+
+-- Insert initial merchant data (sample merchants for testing)
+-- Note: auth_user_id will be updated when real users are created in Supabase Auth
+INSERT INTO merchants (name, email, restaurant_id, role, auth_user_id) 
+SELECT 
+    'Admin User',
+    'admin@platform.com',
+    r.id,
+    'admin',
+    NULL  -- Will be linked when auth user is created
+FROM restaurants r 
+WHERE r.name = 'Gourmet Bistro'
+LIMIT 1;
+
+INSERT INTO merchants (name, email, restaurant_id, role, auth_user_id)
+SELECT 
+    'John Smith',
+    'merchant@gourmet.com',
+    r.id,
+    'merchant',
+    NULL  -- Will be linked when auth user is created
+FROM restaurants r 
+WHERE r.name = 'Gourmet Bistro'
+LIMIT 1;

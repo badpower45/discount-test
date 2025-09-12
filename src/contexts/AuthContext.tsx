@@ -78,9 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchMerchantData = async (userId: string) => {
     try {
-      // For development, we'll use a simple email-based lookup
-      // In production, you'd link auth_user_id properly
-      const { data, error } = await supabase
+      // First, try to find merchant by auth_user_id (primary method)
+      const { data: authLinkedData, error: authError } = await supabase
         .from('merchants')
         .select(`
           id,
@@ -93,22 +92,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('auth_user_id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching merchant data:', error);
-        return;
-      }
-
-      if (data) {
+      // If found by auth_user_id, use that data
+      if (authLinkedData && !authError) {
         const merchantData = {
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          restaurant_id: data.restaurant_id,
-          restaurant_name: data.restaurants?.restaurant_name,
-          role: data.role || 'merchant'
+          id: authLinkedData.id,
+          name: authLinkedData.name,
+          email: authLinkedData.email,
+          restaurant_id: authLinkedData.restaurant_id,
+          restaurant_name: authLinkedData.restaurants?.restaurant_name,
+          role: authLinkedData.role || 'merchant'
         };
         setMerchant(merchantData);
         setIsAdmin(merchantData.role === 'admin');
+        return;
+      }
+
+      // If not found by auth_user_id, try email fallback (for unlinked accounts)
+      if (user?.email) {
+        console.log('Auth user not linked to merchant, attempting email fallback...');
+        
+        const { data: emailData, error: emailError } = await supabase
+          .rpc('find_merchant_by_email', { user_email: user.email });
+
+        if (emailData && emailData.length > 0 && !emailError) {
+          const foundMerchant = emailData[0];
+          
+          // Attempt to link the current user to this merchant
+          const { data: linkResult, error: linkError } = await supabase
+            .rpc('link_current_user_to_merchant', { merchant_email: user.email });
+
+          if (linkResult && linkResult.length > 0 && linkResult[0].success) {
+            console.log('Successfully linked user to merchant:', linkResult[0].message);
+            
+            // Set merchant data after successful linking
+            const merchantData = {
+              id: foundMerchant.merchant_id,
+              name: foundMerchant.name,
+              email: foundMerchant.email,
+              restaurant_id: foundMerchant.restaurant_id,
+              restaurant_name: foundMerchant.restaurant_name,
+              role: foundMerchant.role || 'merchant'
+            };
+            setMerchant(merchantData);
+            setIsAdmin(merchantData.role === 'admin');
+          } else {
+            console.error('Failed to link user to merchant:', linkError || linkResult?.[0]?.message);
+          }
+        } else {
+          console.log('No merchant found with email:', user.email);
+        }
       }
     } catch (error) {
       console.error('Error in fetchMerchantData:', error);
@@ -117,55 +149,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Simple authentication for development - check merchant exists
-      const { data: merchantData, error } = await supabase
-        .from('merchants')
-        .select(`
-          id,
-          name,
-          email,
-          restaurant_id,
-          role,
-          restaurants(restaurant_name)
-        `)
-        .eq('email', email)
-        .single();
+      // استخدام دالة تسجيل الدخول الحقيقية من Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
 
-      if (error || !merchantData) {
-        return { error: { message: 'البريد الإلكتروني غير صحيح أو غير مسجل' } };
+      if (error) {
+        // إذا كان هناك خطأ، قم بإرجاعه لعرضه للمستخدم
+        return { error };
       }
-
-      // Check password (simple check for demo - use proper auth in production)
-      if (password !== 'password123') {
-        return { error: { message: 'كلمة المرور غير صحيحة' } };
-      }
-
-      // Create mock user session for successful login
-      const mockUser = { 
-        id: merchantData.id, 
-        email: merchantData.email,
-        aud: 'authenticated',
-        role: 'authenticated'
-      } as User;
-
-      // Set merchant data
-      const merchant = {
-        id: merchantData.id,
-        name: merchantData.name,
-        email: merchantData.email,
-        restaurant_id: merchantData.restaurant_id,
-        restaurant_name: merchantData.restaurants?.restaurant_name,
-        role: merchantData.role || 'merchant'
-      };
-
-      setUser(mockUser);
-      setMerchant(merchant);
-      setIsAdmin(merchant.role === 'admin');
       
+      // إذا نجح تسجيل الدخول، ستقوم دالة onAuthStateChange تلقائيًا بتحديث بيانات المستخدم
+      // لا داعي لإجراء أي شيء إضافي هنا
       return { error: null };
+
     } catch (error) {
       console.error('Sign in error:', error);
-      return { error: { message: 'حدث خطأ أثناء تسجيل الدخول' } };
+      return { error: { message: 'حدث خطأ غير متوقع أثناء تسجيل الدخول' } };
     }
   };
 
