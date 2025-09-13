@@ -85,7 +85,21 @@ The application requires environment variables for Supabase integration:
 - `VITE_SUPABASE_URL`: Supabase project URL
 - `VITE_SUPABASE_ANON_KEY`: Supabase anonymous key for client-side operations
 
-# Recent Updates (September 2025)
+# Recent Updates (September 13, 2025)
+
+## Latest Feature Enhancements
+- **Customer Database Registration**: Fixed customer registration flow to ensure customers are properly saved to database during coupon generation
+- **Real-time Data Flow**: Implemented comprehensive data refresh mechanism so customers appear in admin dashboards immediately after registration
+- **Admin Restaurant Management**: Added "Add Restaurant" functionality to admin dashboard with complete form validation and database integration
+- **Improved Error Handling**: Enhanced CustomerDiscountPage to show proper error messages when database operations fail instead of showing false success messages
+
+## Code Quality Improvements
+- **Database Consistency**: Fixed coupon generation to only show success when database operations actually succeed
+- **Real-time Updates**: Integrated refreshData calls throughout the app to ensure dashboard data stays synchronized with database
+- **Clean Architecture**: Removed unused variables and imports to maintain clean, error-free codebase
+- **Security**: All operations use secure RPC functions with proper error handling and authentication checks
+
+# Previous Updates (September 2025)
 
 ## Critical Issue Resolution
 - **App Stability**: Fixed critical Vite HMR configuration issue that caused constant app restarts and data loss during user input
