@@ -1,0 +1,40 @@
+
+عنوان الطلب: (Urgent Final Escalation) - Project Unusable Due to Persistent Replit Environment Conflict with Vite
+
+نص الرسالة:
+
+To the Replit Support Team,
+
+I am writing to you for a final time regarding my project, which has been completely unusable for an extended period due to a persistent environmental issue on your platform. We have exhausted all standard debugging procedures, and the problem is clearly not with my application code but with the Replit environment itself.
+
+The Core Problem:
+
+My Vite + React application fails to load in the Replit webview, consistently showing a white/black screen. We have identified the root cause: a critical JavaScript error caused by scripts injected by the Replit environment.
+
+The specific error is: Uncaught Error: A custom element with name 'mce-autosize-textarea' has already been defined.
+
+The stack trace for this error clearly indicates it originates from overlay_bundle.js, a script that Replit injects into the webview. This script is conflicting with the Vite development server and its dependencies, causing the entire application to crash before it can render.
+
+What We Have Already Done (Multiple Times):
+
+We have meticulously followed every best practice and debugging step to resolve this, including:
+
+Correcting vite.config.ts: The configuration has been set to the standard, recommended settings for Replit, including host: '0.0.0.0' and the correct HMR proxy settings (clientPort: 443, protocol: 'wss').
+
+Simplifying .replit: The configuration file has been simplified to the most basic run = "npm run dev" command to eliminate any workflow conflicts.
+
+Fixing All Application Code: We have fixed all bugs in the application code itself, including data fetching, component logic, and database functions. The application code is production-ready.
+
+Despite all these fixes, the Replit-injected script continues to break the application.
+
+Required Action - The Final Solution:
+
+This is no longer a debugging request; this is an escalation. I need a Replit engineer to investigate the environment for my Repl and provide a definitive solution. The solution must be one of the following:
+
+Provide a working environment configuration: Provide the exact .replit and vite.config.ts configuration that is guaranteed to work with your platform's script injection and proxy, and stops this conflict.
+
+Disable the conflicting script: As a direct solution, please provide a way to disable the Replit overlay_bundle.js script from being injected into my project's webview. Since this script is the source of the fatal error, disabling it is the most logical step to make my project functional.
+
+I have spent a significant amount of time trying to get a standard Vite application to work on your platform. I need a working solution, not more general advice. Please escalate this issue to an engineer who can resolve this environmental conflict.
+
+Thank you.
