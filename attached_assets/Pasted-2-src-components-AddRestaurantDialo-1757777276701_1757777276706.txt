@@ -1,0 +1,66 @@
+2. السبب الثانوي: معالجة الأخطاء في واجهة المستخدم
+المشكلة: في ملف src/components/AddRestaurantDialog.tsx، دالة handleSubmit التي تقوم بإرسال بيانات المطعم الجديد، لا تتعامل مع حالة الفشل بشكل صحيح. هي تقوم بتعيين حالة التحميل setIsSubmitting(true)، ولكنها لا تقوم بإعادتها إلى false إذا فشلت عملية الإضافة.
+
+النتيجة: عندما ترفض قاعدة البيانات الطلب (بسبب مشكلة الصلاحيات)، يحدث خطأ. الكود لا يلتقط هذا الخطأ ليعيد حالة التحميل إلى طبيعتها، فتظل الواجهة معلقة على "جاري الإضافة..." إلى الأبد.
+
+الحل للكود (ضروري لتجربة المستخدم):
+يجب تعديل دالة handleSubmit لتكون أكثر قوة وتتعامل مع النجاح والفشل بشكل صحيح.
+
+أرسل هذا التعديل إلى Replit ليتم تطبيقه على ملف src/components/AddRestaurantDialog.tsx:
+
+ابحث عن دالة handleSubmit.
+
+استبدل الكود الحالي بالكامل بالكود المحدّث التالي:
+
+TypeScript
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+
+  try {
+    // تحويل نسبة الخصم إلى رقم
+    const restaurantData = {
+      ...formData,
+      discount_percentage: Number(formData.discount_percentage),
+    };
+
+    // استدعاء دالة الإضافة
+    const result = await addRestaurant(restaurantData);
+
+    if (result.success) {
+      toast.success('Restaurant added successfully!');
+      refreshData(); // تحديث البيانات في التطبيق
+      onClose(); // إغلاق النافذة
+    } else {
+      // عرض رسالة خطأ واضحة
+      toast.error(`Failed to add restaurant: ${result.error?.message || 'Unknown error'}`);
+    }
+  } catch (error) {
+    // التعامل مع أي أخطاء غير متوقعة
+    const err = error as Error;
+    toast.error(`An unexpected error occurred: ${err.message}`);
+    console.error("Submission error:", error);
+  } finally {
+    // هذه هي الخطوة الأهم: إعادة حالة التحميل إلى طبيعتها دائمًا
+    setIsSubmitting(false);
+  }
+};
+لماذا هذا التعديل مهم:
+
+try...catch...finally: هذا الهيكل يضمن أن setIsSubmitting(false) سيتم تنفيذها دائمًا في finally، سواء نجحت العملية أم فشلت. هذا سيمنع الواجهة من التعليق.
+
+رسائل خطأ واضحة: الآن سيتم إعلامك إذا فشلت العملية وسبب الفشل.
+
+تحديث فوري: عند النجاح، سيتم استدعاء refreshData() لتحديث قائمة المطاعم فورًا.
+
+الخلاصة:
+بعد تطبيق الحل الأول (صلاحية قاعدة البيانات) و الحل الثاني (تعديل الكود)، ستعمل ميزة إضافة المطاعم بشكل كامل وسليم:
+
+ستقبل قاعدة البيانات طلبات الإضافة من الأدمن.
+
+ستقوم الواجهة بمعالجة الطلب بشكل صحيح.
+
+ستتوقف الواجهة عن التعليق في حالة حدوث أي خطأ.
+
+سيتم تحديث قائمة المطاعم فورًا بعد الإضافة الناجحة.

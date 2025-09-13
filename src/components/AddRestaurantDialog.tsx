@@ -50,59 +50,30 @@ export function AddRestaurantDialog({ isOpen, onClose }: AddRestaurantDialogProp
     setIsSubmitting(true);
 
     try {
-      // Convert discount percentage to number
-      const discountPercentage = parseInt(formData.discount_percentage);
-      
-      if (isNaN(discountPercentage) || discountPercentage < 1 || discountPercentage > 100) {
-        toast.error('نسبة الخصم يجب أن تكون رقماً بين 1 و 100');
-        return;
-      }
-
+      // تحويل نسبة الخصم إلى رقم
       const restaurantData = {
-        name: formData.name.trim(),
-        restaurant_name: formData.restaurant_name.trim(),
-        offer_name: formData.offer_name.trim(),
-        image_url: formData.image_url.trim(),
-        logo_url: formData.logo_url.trim() || undefined,
-        discount_percentage: discountPercentage,
-        description: formData.description.trim(),
-        category: formData.category
+        ...formData,
+        discount_percentage: Number(formData.discount_percentage),
       };
 
-      // Validate required fields
-      if (!restaurantData.name || !restaurantData.image_url || !restaurantData.description) {
-        toast.error('يرجى ملء جميع الحقول المطلوبة');
-        return;
-      }
-
+      // استدعاء دالة الإضافة
       const result = await addRestaurant(restaurantData);
 
       if (result.success) {
-        toast.success('تم إضافة المطعم بنجاح!');
-        
-        // Clear form
-        setFormData({
-          name: '',
-          restaurant_name: '',
-          offer_name: '',
-          image_url: '',
-          logo_url: '',
-          discount_percentage: '',
-          description: '',
-          category: 'restaurant'
-        });
-        
-        // Refresh data to show new restaurant
-        refreshData();
-        onClose();
+        toast.success('Restaurant added successfully!');
+        refreshData(); // تحديث البيانات في التطبيق
+        onClose(); // إغلاق النافذة
       } else {
-        console.error('Error adding restaurant:', result.error);
-        toast.error('فشل في إضافة المطعم: ' + (result.error?.message || 'خطأ غير معروف'));
+        // عرض رسالة خطأ واضحة
+        toast.error(`Failed to add restaurant: ${result.error?.message || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Exception in handleSubmit:', error);
-      toast.error('حدث خطأ أثناء إضافة المطعم');
+      // التعامل مع أي أخطاء غير متوقعة
+      const err = error as Error;
+      toast.error(`An unexpected error occurred: ${err.message}`);
+      console.error("Submission error:", error);
     } finally {
+      // هذه هي الخطوة الأهم: إعادة حالة التحميل إلى طبيعتها دائمًا
       setIsSubmitting(false);
     }
   };
