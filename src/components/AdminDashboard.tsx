@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { AppContext } from '../App';
 import { fetchDashboardStats } from '../lib/database-functions';
 import { useAuth } from '../contexts/AuthContext';
+import { AddRestaurantDialog } from './AddRestaurantDialog';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
@@ -26,6 +27,7 @@ export function AdminDashboard() {
   const { signOut } = useAuth();
   const { offers, discountCodes, customers } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isAddRestaurantDialogOpen, setIsAddRestaurantDialogOpen] = useState(false);
   const [realStats, setRealStats] = useState({
     totalRestaurants: 0,
     totalCustomers: 0,
@@ -296,7 +298,10 @@ export function AdminDashboard() {
           <h1 className="text-2xl text-gray-900 mb-2">Restaurant Management</h1>
           <p className="text-gray-600">Manage all restaurants on the platform</p>
         </div>
-        <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white">
+        <Button 
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+          onClick={() => setIsAddRestaurantDialogOpen(true)}
+        >
           Add Restaurant
         </Button>
       </div>
@@ -555,6 +560,12 @@ export function AdminDashboard() {
           </main>
         </div>
       </div>
+      
+      {/* Add Restaurant Dialog */}
+      <AddRestaurantDialog 
+        isOpen={isAddRestaurantDialogOpen} 
+        onClose={() => setIsAddRestaurantDialogOpen(false)}
+      />
     </SidebarProvider>
   );
 }

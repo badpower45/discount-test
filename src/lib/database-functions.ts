@@ -80,6 +80,28 @@ export const fetchRestaurantById = async (id: string): Promise<Restaurant | null
   }
 };
 
+// Restaurant management functions
+export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
+  try {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .insert([restaurantData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding restaurant:', error);
+      return { success: false, error };
+    }
+    
+    console.log('✅ Successfully added restaurant:', data);
+    return { success: true, data: data };
+  } catch (err) {
+    console.error('Error in addRestaurant:', err);
+    return { success: false, error: err };
+  }
+};
+
 // Coupon generation function
 export const generateCoupon = async (
   customerName: string,
