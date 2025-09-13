@@ -175,8 +175,7 @@ export default function App() {
                   <AdminDashboard />
                 </ProtectedRoute>
               } />
-              <Route path="/test" element={<SupabaseTest />} />
-              <Route path="/react-test" element={<SimpleTest />} />
+{/* Test routes removed for production */}
               <Route path="*" element={<LandingPage />} />
             </Routes>
             <Toaster />

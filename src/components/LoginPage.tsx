@@ -97,19 +97,7 @@ export function LoginPage() {
             </Button>
           </form>
           
-          {/* Demo credentials removed for production security */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-600 mb-2">حسابات التجريب (للتطوير فقط):</p>
-              <div className="text-xs space-y-1">
-                <div>• merchant1@bistro.com</div>
-                <div>• merchant2@cafe.com</div>
-                <div>• merchant3@pizza.com</div>
-                <div>• admin@platform.com (Admin)</div>
-                <p className="text-gray-500 mt-2">كلمة المرور: password123</p>
-              </div>
-            </div>
-          )}
+{/* Demo credentials removed for production */}
         </CardContent>
       </Card>
     </div>

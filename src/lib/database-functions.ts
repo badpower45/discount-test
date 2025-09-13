@@ -82,8 +82,7 @@ export const fetchRestaurants = async (): Promise<Restaurant[]> => {
     
     if (error) {
       console.error('Error fetching restaurants:', error);
-      console.warn('🔄 Using mock data fallback');
-      return mockRestaurants;
+      return [];
     }
     
     if (!data || data.length === 0) {
