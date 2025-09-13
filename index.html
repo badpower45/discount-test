@@ -1,10 +1,18 @@
-
   <!DOCTYPE html>
   <html lang="en">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Discount Platform Interface Design</title>
+      <script>
+        // Prevent custom element redefinition errors
+        const originalDefine = window.customElements.define;
+        window.customElements.define = function(name, constructor, options) {
+          if (!window.customElements.get(name)) {
+            originalDefine.call(this, name, constructor, options);
+          }
+        };
+      </script>
     </head>
 
     <body>
