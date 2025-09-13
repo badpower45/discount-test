@@ -1,0 +1,135 @@
+المشكلة:
+عند محاولة إضافة مطعم جديد، يفشل التطبيق مع ظهور رسالة خطأ مضللة من Supabase (Could not find function add_restaurant_v1). تم التأكد من أن السبب الحقيقي هو عدم وجود صلاحية أمان (RLS Policy) تسمح للأدمن بتنفيذ عمليات INSERT على جدول restaurants.
+
+الحل المطلوب:
+يرجى تطبيق الإصلاحين التاليين بالترتيب لضمان عمل الميزة بشكل كامل ومستقر.
+
+الخطوة الأولى: إصلاح صلاحيات قاعدة البيانات (الأهم)
+
+اذهب إلى SQL Editor في لوحة تحكم Supabase وقم بتشغيل الكود التالي. هذا الكود سيمنح الأدمن الصلاحية الصحيحة لإضافة المطاعم:
+
+SQL
+
+-- Title: Add RLS Policy to Allow Admins to Insert Restaurants
+
+CREATE POLICY "Admins can insert new restaurants"
+ON public.restaurants
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM public.merchants
+    WHERE auth_user_id = auth.uid() AND role = 'admin'
+  )
+);
+الخطوة الثانية: التأكد من أن الكود في الواجهة الأمامية سليم
+
+للتأكد من أن كل شيء سيعمل بسلاسة بعد إصلاح قاعدة البيانات، يرجى التأكد من أن محتوى ملف src/lib/database-functions.ts مطابق تمامًا للكود التالي. هذا يضمن أن جميع الدوال اللازمة موجودة وصحيحة.
+
+الكود الكامل والصحيح لملف src/lib/database-functions.ts:
+
+TypeScript
+
+import { supabase } from './supabase';
+
+// (هنا توجد تعريفات الواجهات Interfaces... لا داعي لتغييرها)
+export interface Restaurant {
+  id: string;
+  name: string;
+  restaurant_name?: string;
+  offer_name?: string;  
+  image_url: string;
+  logo_url?: string;
+  discount_percentage: number;
+  description: string;
+  category: 'restaurant' | 'cafe' | 'bakery' | 'other';
+  created_at: string;
+  updated_at?: string; // جعل هذا الحقل اختياريًا هنا أيضًا
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  created_at: string;
+}
+
+// ... بقية تعريفات الواجهات
+
+// Restaurant management functions
+export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
+  try {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .insert([restaurantData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding restaurant:', error);
+      return { success: false, error };
+    }
+    
+    console.log('✅ Successfully added restaurant:', data);
+    return { success: true, data: data as Restaurant };
+  } catch (err) {
+    console.error('Error in addRestaurant:', err);
+    return { success: false, error: err };
+  }
+};
+
+// ... (بقية الدوال تبقى كما هي بدون تغيير)
+// fetchRestaurants, generateCoupon, validateCoupon, etc.
+
+// في نهاية الملف، تأكد من وجود هذه الدوال
+export const fetchCustomers = async (): Promise<Customer[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching customers:', error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchCustomers:', err);
+    return [];
+  }
+};
+
+export const fetchAllCoupons = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching all coupons:', error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchAllCoupons:', err);
+    return [];
+  }
+};
+
+// ... (بقية الدوال الأخرى مثل fetchDashboardStats و subscribeToTables تبقى كما هي)
+(ملاحظة هامة: قمت بتعديل بسيط في تعريف Restaurant ليشمل updated_at كحقل اختياري وتعديل Omit في addRestaurant ليشمل updated_at أيضًا. هذا سيمنع أي أخطاء مستقبلية متعلقة بهذا الحقل).
+
+بعد تنفيذ هاتين الخطوتين، ستكون المشكلة قد حُلت بشكل نهائي. الخطوة الأولى ستصلح المشكلة الجذرية في قاعدة البيانات، والخطوة الثانية ستضمن أن الكود الخاص بك قوي وجاهز.
+
+
+
+
+
+
+
+
+

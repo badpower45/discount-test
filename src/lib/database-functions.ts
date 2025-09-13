@@ -3,15 +3,16 @@ import { supabase } from './supabase';
 // Database types
 export interface Restaurant {
   id: string;
-  name: string; // Generic name (used for offer name for backward compatibility)
-  restaurant_name?: string; // Specific restaurant name
-  offer_name?: string; // Specific offer name  
+  name: string;
+  restaurant_name?: string;
+  offer_name?: string;  
   image_url: string;
-  logo_url?: string; // Restaurant logo URL
+  logo_url?: string;
   discount_percentage: number;
   description: string;
   category: 'restaurant' | 'cafe' | 'bakery' | 'other';
   created_at: string;
+  updated_at?: string; // جعل هذا الحقل اختياريًا هنا أيضًا
 }
 
 export interface Customer {
@@ -80,44 +81,24 @@ export const fetchRestaurantById = async (id: string): Promise<Restaurant | null
   }
 };
 
-// Restaurant management functions - نهائي ومضمون
+// Restaurant management functions
 export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
   try {
-    console.log('🚀 Adding restaurant with data:', restaurantData);
-    
-    // تحضير البيانات بشكل مضمون
-    const payload = {
-      name: restaurantData.restaurant_name || restaurantData.offer_name || restaurantData.name,
-      restaurant_name: restaurantData.restaurant_name || '',
-      offer_name: restaurantData.offer_name || '',
-      image_url: restaurantData.image_url,
-      logo_url: restaurantData.logo_url || '',
-      discount_percentage: Number(restaurantData.discount_percentage),
-      description: restaurantData.description,
-      category: restaurantData.category
-    };
-
-    console.log('📤 Sending payload to database:', payload);
-    
-    // استخدام الـ function الجديد المضمون
-    const { data, error } = await supabase.rpc('add_restaurant_v1', { payload });
+    const { data, error } = await supabase
+      .from('restaurants')
+      .insert([restaurantData])
+      .select()
+      .single();
 
     if (error) {
-      console.error('❌ Database RPC error:', error);
+      console.error('Error adding restaurant:', error);
       return { success: false, error };
     }
-
-    // فحص الاستجابة
-    if (!data || data.success !== true) {
-      console.error('❌ Function returned failure:', data);
-      return { success: false, error: data?.error || 'Insert failed' };
-    }
-
-    console.log('✅ Restaurant added successfully:', data.restaurant);
-    return { success: true, data: data.restaurant };
     
+    console.log('✅ Successfully added restaurant:', data);
+    return { success: true, data: data as Restaurant };
   } catch (err) {
-    console.error('❌ Exception in addRestaurant:', err);
+    console.error('Error in addRestaurant:', err);
     return { success: false, error: err };
   }
 };
