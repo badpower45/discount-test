@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     getSessionAndMerchant();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -80,9 +80,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn("fetchMerchantData called with no userId");
       return;
     }
+    
     try {
       console.log('🔍 Fetching merchant data for user ID:', userId);
-      const { data, error } = await supabase
+      
+      // Add timeout to prevent infinite hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
+      
+      const dataPromise = supabase
         .from('merchants')
         .select(`
           id,
@@ -94,6 +101,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         `)
         .eq('auth_user_id', userId)
         .single();
+      
+      const result = await Promise.race([dataPromise, timeoutPromise]);
+      const { data, error } = result as any;
 
       if (error) {
         // PGRST116 means no rows were found, which is not a critical error here.
@@ -122,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('❌ Exception in fetchMerchantData:', error);
+      // Force clear loading state to prevent infinite hang
       setMerchant(null);
       setIsAdmin(false);
     }

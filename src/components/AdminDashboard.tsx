@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { AppContext } from '../App';
 import { fetchDashboardStats } from '../lib/database-functions';
@@ -17,9 +17,7 @@ import {
   BarChart3,
   ArrowLeft,
   TrendingUp,
-  Calendar,
   CheckCircle,
-  Clock,
   LogOut
 } from 'lucide-react';
 
