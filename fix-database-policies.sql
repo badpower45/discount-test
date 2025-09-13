@@ -23,12 +23,11 @@ CREATE POLICY "Allow update for authenticated users" ON public.merchants
 -- تفعيل RLS للجدول
 ALTER TABLE public.merchants ENABLE ROW LEVEL SECURITY;
 
--- عرض حالة الجدول للتأكد
+-- عرض حالة RLS للجدول للتأكد
 SELECT 
   schemaname, 
-  tablename, 
-  rowsecurity, 
-  enabledby
+  tablename,
+  pg_class.relrowsecurity as rls_enabled
 FROM pg_tables 
 LEFT JOIN pg_class ON pg_class.relname = tablename
 LEFT JOIN pg_namespace ON pg_namespace.oid = pg_class.relnamespace
