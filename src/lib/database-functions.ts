@@ -188,6 +188,27 @@ export const fetchRestaurantCoupons = async (restaurantId: string) => {
   }
 };
 
+// Customer functions
+export const fetchCustomers = async (): Promise<Customer[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('customers')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching customers:', error);
+      return [];
+    }
+    
+    console.log('✅ Successfully loaded customers from database');
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchCustomers:', err);
+    return [];
+  }
+};
+
 // Statistics functions for admin dashboard
 export const fetchDashboardStats = async () => {
   try {

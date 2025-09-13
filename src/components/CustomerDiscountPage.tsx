@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 export function CustomerDiscountPage() {
   const { offerId } = useParams<{ offerId: string }>();
   const navigate = useNavigate();
-  const { offers, addDiscountCode, addCustomer } = useContext(AppContext);
+  const { offers, addDiscountCode, addCustomer, refreshData } = useContext(AppContext);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -98,6 +98,12 @@ export function CustomerDiscountPage() {
         createdAt: new Date()
       };
       addDiscountCode(discountCode);
+
+      // Refresh all data to ensure new customer appears in dashboards
+      if (result.success) {
+        console.log('🔄 Refreshing data after successful coupon generation');
+        refreshData();
+      }
 
       setGeneratedCode(code);
       toast.success('Discount code generated successfully!');

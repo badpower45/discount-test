@@ -9,7 +9,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 // Test components removed for production
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
-import { fetchRestaurants, subscribeToTables } from './lib/database-functions';
+import { fetchRestaurants, fetchCustomers, subscribeToTables } from './lib/database-functions';
 import type { Restaurant } from './lib/database-functions';
 
 // App state type (now using database Restaurant type)
@@ -50,6 +50,7 @@ export const AppContext = React.createContext<{
   offers: (Restaurant & { image: string; discount: number })[];
   loading: boolean;
   refreshOffers: () => void;
+  refreshData: () => void;
   discountCodes: DiscountCode[];
   customers: Customer[];
   addDiscountCode: (code: DiscountCode) => void;
@@ -59,6 +60,7 @@ export const AppContext = React.createContext<{
   offers: [],
   loading: false,
   refreshOffers: () => {},
+  refreshData: () => {},
   discountCodes: [],
   customers: [],
   addDiscountCode: () => {},
@@ -79,9 +81,9 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
 
-  // Load restaurants from database on mount
+  // Load all data from database on mount
   useEffect(() => {
-    loadRestaurants();
+    loadAllData();
     
     // Only subscribe if we have credentials to avoid connection errors
     let subscription: any = null;
@@ -90,7 +92,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
       // Subscribe to database changes for real-time updates
       subscription = subscribeToTables(() => {
         console.log('Database change detected, refreshing data...');
-        loadRestaurants();
+        loadAllData();
       });
     } catch (error) {
       console.warn('Could not subscribe to database changes:', error);
@@ -104,7 +106,6 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const loadRestaurants = async () => {
-    setLoading(true);
     try {
       const restaurants = await fetchRestaurants();
       // Convert restaurants to compatible format
@@ -112,7 +113,24 @@ function AppProvider({ children }: { children: React.ReactNode }) {
       setOffers(compatibleOffers);
     } catch (error) {
       console.error('Failed to load restaurants:', error);
-      // Keep loading false so UI doesn't hang
+    }
+  };
+
+  const loadCustomers = async () => {
+    try {
+      const customers = await fetchCustomers();
+      setCustomers(customers);
+    } catch (error) {
+      console.error('Failed to load customers:', error);
+    }
+  };
+
+  const loadAllData = async () => {
+    setLoading(true);
+    try {
+      await Promise.all([loadRestaurants(), loadCustomers()]);
+    } catch (error) {
+      console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
@@ -120,6 +138,10 @@ function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshOffers = () => {
     loadRestaurants();
+  };
+
+  const refreshData = () => {
+    loadAllData();
   };
 
   const addDiscountCode = (code: DiscountCode) => {
@@ -143,6 +165,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
       offers,
       loading,
       refreshOffers,
+      refreshData,
       discountCodes,
       customers,
       addDiscountCode,
