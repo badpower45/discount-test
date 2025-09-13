@@ -15,10 +15,14 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    host: '0.0.0.0',
+    host: '0.0.0.0', // هذا يسمح بالوصول من أي شبكة، وهو ضروري لـ Replit
     port: 5000,
     strictPort: true,
     open: false,
-    hmr: false,
+    hmr: {
+      // هذه الإعدادات ضرورية لعمل التحديث المباشر (HMR) بشكل صحيح على Replit
+      clientPort: 443,
+      protocol: 'wss'
+    }
   },
 });
