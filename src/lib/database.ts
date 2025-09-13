@@ -7,17 +7,17 @@ export async function checkTables() {
     console.log('🔍 Checking database tables...');
     
     // Test restaurants table
-    const { data: restaurants, error: restaurantError } = await supabase
+    const { data: _restaurants, error: restaurantError } = await supabase
       .from('restaurants')
       .select('*', { count: 'exact', head: true });
 
     // Test users table  
-    const { data: users, error: userError } = await supabase
+    const { data: _users, error: userError } = await supabase
       .from('users')
       .select('*', { count: 'exact', head: true });
 
     // Test coupons table
-    const { data: coupons, error: couponError } = await supabase
+    const { data: _coupons, error: couponError } = await supabase
       .from('coupons')
       .select('*', { count: 'exact', head: true });
 
@@ -319,8 +319,8 @@ export const db = {
       this.getCoupons()
     ]);
 
-    const usedCoupons = coupons.filter(c => c.status === 'used');
-    const unusedCoupons = coupons.filter(c => c.status === 'unused');
+    const usedCoupons = coupons.filter((c: any) => c.status === 'used');
+    const unusedCoupons = coupons.filter((c: any) => c.status === 'unused');
 
     return {
       totalRestaurants: restaurants.length,
