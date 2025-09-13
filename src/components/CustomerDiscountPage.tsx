@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { AppContext, type Customer, type DiscountCode } from '../App';
 import { generateCoupon } from '../lib/database-functions';
@@ -63,50 +63,47 @@ export function CustomerDiscountPage() {
         offer.id
       );
 
-      let code: string;
-      
       if (result.success && result.coupon) {
-        code = result.coupon.code;
+        const code = result.coupon.code;
         console.log('✅ Generated coupon from database');
-      } else {
-        // Fallback to mock code generation if database fails
-        console.warn('🔄 Database unavailable, generating mock code');
-        code = generateDiscountCode();
-      }
-      
-      // Add to local state for legacy components
-      const customerId = Date.now().toString();
-      const codeId = Date.now().toString();
+        
+        // Only add to local state and show success if database operation succeeded
+        const customerId = Date.now().toString();
+        const codeId = Date.now().toString();
 
-      const customer: Customer = {
-        id: customerId,
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone
-      };
-      addCustomer(customer);
+        const customer: Customer = {
+          id: customerId,
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone
+        };
+        addCustomer(customer);
 
-      const discountCode: DiscountCode = {
-        id: codeId,
-        code,
-        customerId,
-        customerName: formData.name,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        offerId: offer.id,
-        isUsed: false,
-        createdAt: new Date()
-      };
-      addDiscountCode(discountCode);
+        const discountCode: DiscountCode = {
+          id: codeId,
+          code,
+          customerId,
+          customerName: formData.name,
+          customerEmail: formData.email,
+          customerPhone: formData.phone,
+          offerId: offer.id,
+          isUsed: false,
+          createdAt: new Date()
+        };
+        addDiscountCode(discountCode);
 
-      // Refresh all data to ensure new customer appears in dashboards
-      if (result.success) {
+        // Refresh all data to ensure new customer appears in dashboards
         console.log('🔄 Refreshing data after successful coupon generation');
         refreshData();
-      }
 
-      setGeneratedCode(code);
-      toast.success('Discount code generated successfully!');
+        setGeneratedCode(code);
+        toast.success('تم إنشاء كود الخصم بنجاح!');
+      } else {
+        // If database operation failed, show error instead of fallback
+        console.error('❌ Failed to generate coupon from database:', result.error);
+        toast.error('فشل في إنشاء كود الخصم. يرجى المحاولة مرة أخرى.');
+        return;
+      }
     } catch (error) {
       console.error('Error generating coupon:', error);
       toast.error('Failed to generate discount code. Please try again.');

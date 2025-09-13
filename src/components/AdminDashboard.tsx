@@ -35,7 +35,6 @@ export function AdminDashboard() {
     usedCoupons: 0,
     unusedCoupons: 0
   });
-  const [loadingStats, setLoadingStats] = useState(true);
 
   // Fetch real statistics from database
   useEffect(() => {
@@ -54,7 +53,6 @@ export function AdminDashboard() {
 
   const loadDashboardStats = async () => {
     try {
-      setLoadingStats(true);
       const stats = await fetchDashboardStats();
       setRealStats(stats);
       console.log('✅ Loaded admin dashboard stats:', stats);
@@ -68,8 +66,6 @@ export function AdminDashboard() {
         usedCoupons: discountCodes.filter(code => code.isUsed).length,
         unusedCoupons: discountCodes.filter(code => !code.isUsed).length
       });
-    } finally {
-      setLoadingStats(false);
     }
   };
 
