@@ -2,11 +2,13 @@ import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { AppContext } from '../App';
 import { fetchDashboardStats } from '../lib/database-functions';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from './ui/sidebar';
+import { toast } from 'sonner';
 import { 
   Home, 
   Store, 
@@ -17,11 +19,13 @@ import {
   TrendingUp,
   Calendar,
   CheckCircle,
-  Clock
+  Clock,
+  LogOut
 } from 'lucide-react';
 
 export function AdminDashboard() {
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const { offers, discountCodes, customers } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [realStats, setRealStats] = useState({
@@ -37,6 +41,16 @@ export function AdminDashboard() {
   useEffect(() => {
     loadDashboardStats();
   }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast.success('تم تسجيل الخروج بنجاح');
+      navigate('/');
+    } catch (error) {
+      toast.error('خطأ في تسجيل الخروج');
+    }
+  };
 
   const loadDashboardStats = async () => {
     try {
@@ -125,6 +139,15 @@ export function AdminDashboard() {
                 >
                   <BarChart3 className="w-4 h-4" />
                   Reports
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={handleLogout}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <LogOut className="w-4 h-4" />
+                  تسجيل الخروج
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
