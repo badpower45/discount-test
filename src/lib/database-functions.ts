@@ -32,45 +32,7 @@ export interface Coupon {
   used_at?: string;
 }
 
-// Mock data fallback for when database is not available
-const mockRestaurants: Restaurant[] = [
-  {
-    id: '1',
-    name: 'Special Dinner Offer', // Offer name
-    restaurant_name: 'Gourmet Bistro', // Restaurant name
-    offer_name: 'Special Dinner Offer', // Specific offer
-    logo_url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dvJTIwcmVzdGF1cmFudHxlbnwwfHx8fDE3NTc1ODE5MTN8MA&ixlib=rb-4.1.0&q=80&w=200&utm_source=figma&utm_medium=referral',
-    image_url: 'https://images.unsplash.com/photo-1667388968964-4aa652df0a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRpbmluZ3xlbnwxfHx8fDE3NTc1ODE5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    discount_percentage: 30,
-    description: 'Valid for dine-in or delivery',
-    category: 'restaurant',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '2',
-    name: 'Morning Coffee Deal', // Offer name
-    restaurant_name: 'Cozy Corner Cafe', // Restaurant name  
-    offer_name: 'Morning Coffee Deal', // Specific offer
-    logo_url: 'https://images.unsplash.com/photo-1493857671505-72967e2e2760?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWZlJTIwbG9nb3xlbnwwfHx8fDE3NTc1OTY4NDl8MA&ixlib=rb-4.1.0&q=80&w=200&utm_source=figma&utm_medium=referral',
-    image_url: 'https://images.unsplash.com/photo-1682979358243-816a75830f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWZlJTIwY29mZmVlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzU3NTk2ODQ5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    discount_percentage: 25,
-    description: 'All beverages and pastries',
-    category: 'cafe',
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '3',
-    name: 'Pizza Family Pack', // Offer name
-    restaurant_name: 'Mario\'s Pizza Palace', // Restaurant name
-    offer_name: 'Pizza Family Pack', // Specific offer
-    logo_url: 'https://images.unsplash.com/photo-1571066811602-716837d681de?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGxvZ298ZW58MHx8fHwxNzU3NTI3NTA0fDA&ixlib=rb-4.1.0&q=80&w=200&utm_source=figma&utm_medium=referral',
-    image_url: 'https://images.unsplash.com/photo-1563245738-9169ff58eccf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMHJlc3RhdXJhbnR8ZW58MXx8fHwxNzU3NTI3NTA0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    discount_percentage: 40,
-    description: 'Pizza and Italian dishes',
-    category: 'restaurant',
-    created_at: new Date().toISOString()
-  }
-];
+// Production ready - database only
 
 // Restaurant functions
 export const fetchRestaurants = async (): Promise<Restaurant[]> => {
