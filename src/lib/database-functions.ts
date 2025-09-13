@@ -83,18 +83,29 @@ export const fetchRestaurantById = async (id: string): Promise<Restaurant | null
 // Restaurant management functions
 export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
   try {
-    const { data, error } = await supabase
-      .from('restaurants')
-      .insert([restaurantData])
-      .select()
-      .single();
+    // Use secure RPC function to bypass RLS policy conflicts
+    const { data, error } = await supabase.rpc('add_restaurant_safe', {
+      restaurant_name: restaurantData.restaurant_name || restaurantData.name,
+      offer_name: restaurantData.offer_name || restaurantData.name,
+      image_url: restaurantData.image_url,
+      logo_url: restaurantData.logo_url || null,
+      discount_percentage: restaurantData.discount_percentage,
+      description: restaurantData.description,
+      category: restaurantData.category
+    });
 
     if (error) {
-      console.error('Error adding restaurant:', error);
+      console.error('Error adding restaurant via RPC:', error);
       return { success: false, error };
     }
 
-    console.log('✅ Successfully added restaurant:', data);
+    // Check if response has error (from our exception handler)
+    if (data && data.error) {
+      console.error('Database error adding restaurant:', data.error);
+      return { success: false, error: data.error };
+    }
+
+    console.log('✅ Successfully added restaurant via secure RPC:', data);
     return { success: true, data: data as Restaurant };
   } catch (err) {
     console.error('Error in addRestaurant:', err);
