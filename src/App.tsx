@@ -6,8 +6,7 @@ import { MerchantDashboard } from './components/MerchantDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LoginPage } from './components/LoginPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { SupabaseTest } from './components/SupabaseTest';
-import { SimpleTest } from './components/SimpleTest';
+// Test components removed for production
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
 import { fetchRestaurants, subscribeToTables } from './lib/database-functions';

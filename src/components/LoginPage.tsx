@@ -27,7 +27,7 @@ export function LoginPage() {
         toast.error('خطأ في تسجيل الدخول: ' + error.message);
       } else {
         toast.success('تم تسجيل الدخول بنجاح!');
-        navigate('/merchant-dashboard');
+        navigate('/merchant');
       }
     } catch (error) {
       toast.error('حدث خطأ أثناء تسجيل الدخول');

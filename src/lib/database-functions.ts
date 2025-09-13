@@ -86,16 +86,15 @@ export const fetchRestaurants = async (): Promise<Restaurant[]> => {
     }
     
     if (!data || data.length === 0) {
-      console.warn('📝 No restaurants found in database, using mock data');
-      return mockRestaurants;
+      console.warn('📝 No restaurants found in database');
+      return [];
     }
     
     console.log('✅ Successfully loaded restaurants from database');
     return data;
   } catch (err) {
     console.error('Error in fetchRestaurants:', err);
-    console.warn('🔄 Using mock data fallback');
-    return mockRestaurants;
+    return [];
   }
 };
 
