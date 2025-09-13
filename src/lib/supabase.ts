@@ -29,8 +29,10 @@ export const supabase = (() => {
         auth: { 
           user: null,
           getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-          signIn: () => Promise.resolve({ data: null, error: null }),
-          signOut: () => Promise.resolve({ error: null })
+          getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+          signInWithPassword: () => Promise.resolve({ data: null, error: null }),
+          signOut: () => Promise.resolve({ error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
         },
         channel: () => ({
           on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) })
@@ -51,8 +53,10 @@ export const supabase = (() => {
       auth: { 
         user: null,
         getUser: () => Promise.resolve({ data: { user: null }, error: { message: 'Supabase init failed' } }),
-        signIn: () => Promise.resolve({ data: null, error: { message: 'Supabase init failed' } }),
-        signOut: () => Promise.resolve({ error: { message: 'Supabase init failed' } })
+        getSession: () => Promise.resolve({ data: { session: null }, error: { message: 'Supabase init failed' } }),
+        signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Supabase init failed' } }),
+        signOut: () => Promise.resolve({ error: { message: 'Supabase init failed' } }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
       },
       channel: () => ({
         on: () => ({ subscribe: () => ({ unsubscribe: () => {} }) })
