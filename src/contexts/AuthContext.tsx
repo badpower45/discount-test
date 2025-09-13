@@ -48,6 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           await fetchMerchantData(session.user.id);
+        } else {
+          console.log('ℹ️ No active session found');
         }
       } catch (error) {
         console.error('Error getting session:', error);
@@ -78,6 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchMerchantData = async (userId: string) => {
     try {
+      console.log('🔍 Fetching merchant data for user ID:', userId);
+      
       // First, try to find merchant by auth_user_id (primary method)
       const { data: authLinkedData, error: authError } = await supabase
         .from('merchants')
@@ -94,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If found by auth_user_id, use that data
       if (authLinkedData && !authError) {
+        console.log('✅ Found merchant by auth_user_id:', authLinkedData);
         const merchantData = {
           id: authLinkedData.id,
           name: authLinkedData.name,
@@ -104,46 +109,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setMerchant(merchantData);
         setIsAdmin(merchantData.role === 'admin');
+        console.log('✅ Set merchant data:', merchantData);
         return;
       }
 
+      console.log('⚠️ Auth user not linked to merchant, trying email fallback...');
+      
       // If not found by auth_user_id, try email fallback (for unlinked accounts)
       if (user?.email) {
-        console.log('Auth user not linked to merchant, attempting email fallback...');
+        console.log('🔍 Searching for merchant with email:', user.email);
         
-        const { data: emailData, error: emailError } = await supabase
-          .rpc('find_merchant_by_email', { user_email: user.email });
+        // Try direct query first for simpler approach
+        const { data: directData, error: directError } = await supabase
+          .from('merchants')
+          .select(`
+            id,
+            name,
+            email,
+            restaurant_id,
+            role,
+            restaurants(restaurant_name)
+          `)
+          .eq('email', user.email)
+          .single();
 
-        if (emailData && emailData.length > 0 && !emailError) {
-          const foundMerchant = emailData[0];
+        if (directData && !directError) {
+          console.log('✅ Found merchant by email (direct query):', directData);
           
-          // Attempt to link the current user to this merchant
-          const { data: linkResult, error: linkError } = await supabase
-            .rpc('link_current_user_to_merchant', { merchant_email: user.email });
-
-          if (linkResult && linkResult.length > 0 && linkResult[0].success) {
-            console.log('Successfully linked user to merchant:', linkResult[0].message);
+          // Update auth_user_id to link them for future
+          const { error: updateError } = await supabase
+            .from('merchants')
+            .update({ auth_user_id: userId })
+            .eq('id', directData.id);
             
-            // Set merchant data after successful linking
-            const merchantData = {
-              id: foundMerchant.merchant_id,
-              name: foundMerchant.name,
-              email: foundMerchant.email,
-              restaurant_id: foundMerchant.restaurant_id,
-              restaurant_name: foundMerchant.restaurant_name,
-              role: foundMerchant.role || 'merchant'
-            };
-            setMerchant(merchantData);
-            setIsAdmin(merchantData.role === 'admin');
+          if (updateError) {
+            console.warn('Failed to link user to merchant:', updateError);
           } else {
-            console.error('Failed to link user to merchant:', linkError || linkResult?.[0]?.message);
+            console.log('✅ Successfully linked user to merchant');
           }
-        } else {
-          console.log('No merchant found with email:', user.email);
+          
+          const merchantData = {
+            id: directData.id,
+            name: directData.name,
+            email: directData.email,
+            restaurant_id: directData.restaurant_id,
+            restaurant_name: directData.restaurants?.restaurant_name,
+            role: directData.role || 'merchant'
+          };
+          setMerchant(merchantData);
+          setIsAdmin(merchantData.role === 'admin');
+          console.log('✅ Set merchant data:', merchantData);
+          return;
         }
+        
+        console.log('❌ No merchant found with email:', user.email);
+      }
+      
+      console.log('❌ Could not find merchant for user');
+      
+      // تحقق مؤقت للمديرين بناء على البريد الإلكتروني
+      if (user?.email === 'admin@platform.com') {
+        console.log('🔧 Applying temporary admin access for admin@platform.com');
+        const tempAdminData = {
+          id: 'temp-admin-id',
+          name: 'Platform Admin',
+          email: user.email,
+          restaurant_id: 'temp-restaurant-id',
+          role: 'admin' as const
+        };
+        setMerchant(tempAdminData);
+        setIsAdmin(true);
+        console.log('✅ Temporary admin access granted');
+        return;
       }
     } catch (error) {
-      console.error('Error in fetchMerchantData:', error);
+      console.error('❌ Error in fetchMerchantData:', error);
     }
   };
 
