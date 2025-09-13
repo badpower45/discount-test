@@ -1,0 +1,80 @@
+بالتأكيد، لقد قمت بإعداد وصف تفصيلي وشامل للمشكلة والحل المطلوب. يمكنك نسخ هذا النص وإرساله مباشرة إلى Replit لمساعدتك في تعديل الكود.
+
+وصف الطلب: إصلاح مشكلة صلاحيات الأدمن في تطبيق React المتصل بـ Supabase
+المشكلة الحالية:
+
+لدي تطبيق ويب مبني باستخدام React و Vite، ويستخدم Supabase كقاعدة بيانات ونظام مصادقة. التطبيق يحتوي على أدوار مختلفة للمستخدمين، بما في ذلك دور "admin".
+
+عندما أقوم بتسجيل الدخول باستخدام حساب الأدمن (admin@platform.com)، تتم عملية تسجيل الدخول بنجاح. ولكن عند محاولة الوصول إلى لوحة تحكم الأدمن عبر الرابط /admin، يفشل التطبيق في التعرف على صلاحياتي كـ "admin". نتيجة لذلك، يقوم مكون ProtectedRoute بمنعي من الوصول إلى الصفحة، ويعرض رسالة خطأ تفيد بأنه ليس لدي الصلاحية المطلوبة أو أنني "لست تاجرًا".
+
+ما تم التحقق منه:
+
+تطابق معرّف المستخدم: لقد تأكدت من أن معرّف المستخدم (UID) الخاص بحساب admin@platform.com في قسم Authentication في Supabase متطابق تمامًا مع قيمة حقل auth_user_id في جدول merchants لنفس الحساب. هذا يؤكد أن المشكلة ليست بسبب عدم تطابق البيانات.
+
+صلاحيات قاعدة البيانات (RLS): يبدو أن المشكلة الأساسية تكمن في صلاحيات الوصول إلى البيانات (Row Level Security Policies) المفروضة على جدول merchants. عند محاولة جلب بيانات المستخدم بعد تسجيل الدخول، تدخل صلاحيات RLS في حلقة مفرغة (infinite recursion)، مما يؤدي إلى فشل جلب بيانات المستخدم وتحديد دوره كـ "admin".
+
+الحل المطلوب:
+
+أحتاج إلى تعديل الكود ليتجاوز مشكلة صلاحيات RLS عند جلب بيانات المستخدم. الحل الأمثل يتكون من جزأين:
+
+1. إنشاء دالة آمنة (RPC Function) في قاعدة بيانات Supabase:
+يجب إضافة دالة جديدة في Supabase SQL Editor تقوم بجلب بيانات المستخدم المسجل دخوله حاليًا. هذه الدالة ستعمل بصلاحيات SECURITY DEFINER لتجاوز قيود RLS بأمان.
+
+كود الدالة المطلوب إضافته في Supabase:
+
+SQL
+
+CREATE OR REPLACE FUNCTION get_my_merchant_data()
+RETURNS TABLE (
+    id uuid,
+    name text,
+    email text,
+    restaurant_id uuid,
+    restaurant_name text,
+    role text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    m.id,
+    m.name,
+    m.email,
+    m.restaurant_id,
+    r.restaurant_name,
+    m.role
+  FROM
+    public.merchants m
+  LEFT JOIN
+    public.restaurants r ON m.restaurant_id = r.id
+  WHERE
+    m.auth_user_id = auth.uid();
+END;
+$$;
+2. تعديل كود React لاستدعاء الدالة الجديدة:
+يجب تعديل الملف المسؤول عن حالة المصادقة في التطبيق (src/contexts/AuthContext.tsx) لكي يستخدم الدالة الجديدة بدلاً من الاستعلام المباشر من جدول merchants.
+
+الملف المستهدف: src/contexts/AuthContext.tsx
+
+التعديل المطلوب:
+داخل دالة fetchMerchantData، يجب استبدال استعلام Supabase الحالي supabase.from('merchants').select(...) بالاستدعاء التالي للدالة الجديدة:
+
+TypeScript
+
+// استبدل هذا الجزء من الكود
+const { data, error } = await supabase
+  .from('merchants')
+  .select(...) // ... بقية الاستعلام الحالي
+  .eq('auth_user_id', userId)
+  .single();
+
+// بالكود الجديد التالي
+const { data, error } = await supabase
+  .rpc('get_my_merchant_data')
+  .single();
+النتيجة المتوقعة:
+
+بعد تطبيق هذه التعديلات، من المفترض أن يتمكن التطبيق من جلب بيانات ودور المستخدم (admin) بنجاح بعد تسجيل الدخول، مما يسمح لي بالوصول إلى لوحة تحكم الأدمن على مسار /admin بدون مشاكل.
