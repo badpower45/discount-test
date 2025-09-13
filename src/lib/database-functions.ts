@@ -80,35 +80,44 @@ export const fetchRestaurantById = async (id: string): Promise<Restaurant | null
   }
 };
 
-// Restaurant management functions
+// Restaurant management functions - نهائي ومضمون
 export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
   try {
-    // Use secure RPC function to bypass RLS policy conflicts
-    const { data, error } = await supabase.rpc('add_restaurant_safe', {
-      p_restaurant_name: restaurantData.restaurant_name || restaurantData.name,
-      p_offer_name: restaurantData.offer_name || restaurantData.name,
-      p_image_url: restaurantData.image_url,
-      p_logo_url: restaurantData.logo_url || null,
-      p_discount_percentage: restaurantData.discount_percentage,
-      p_description: restaurantData.description,
-      p_category: restaurantData.category
-    });
+    console.log('🚀 Adding restaurant with data:', restaurantData);
+    
+    // تحضير البيانات بشكل مضمون
+    const payload = {
+      name: restaurantData.restaurant_name || restaurantData.offer_name || restaurantData.name,
+      restaurant_name: restaurantData.restaurant_name || '',
+      offer_name: restaurantData.offer_name || '',
+      image_url: restaurantData.image_url,
+      logo_url: restaurantData.logo_url || '',
+      discount_percentage: Number(restaurantData.discount_percentage),
+      description: restaurantData.description,
+      category: restaurantData.category
+    };
+
+    console.log('📤 Sending payload to database:', payload);
+    
+    // استخدام الـ function الجديد المضمون
+    const { data, error } = await supabase.rpc('add_restaurant_v1', { payload });
 
     if (error) {
-      console.error('Error adding restaurant via RPC:', error);
+      console.error('❌ Database RPC error:', error);
       return { success: false, error };
     }
 
-    // Check if response has error (from our exception handler)
-    if (data && data.error) {
-      console.error('Database error adding restaurant:', data.error);
-      return { success: false, error: data.error };
+    // فحص الاستجابة
+    if (!data || data.success !== true) {
+      console.error('❌ Function returned failure:', data);
+      return { success: false, error: data?.error || 'Insert failed' };
     }
 
-    console.log('✅ Successfully added restaurant via secure RPC:', data);
-    return { success: true, data: data as Restaurant };
+    console.log('✅ Restaurant added successfully:', data.restaurant);
+    return { success: true, data: data.restaurant };
+    
   } catch (err) {
-    console.error('Error in addRestaurant:', err);
+    console.error('❌ Exception in addRestaurant:', err);
     return { success: false, error: err };
   }
 };
