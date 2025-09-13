@@ -82,33 +82,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     
     try {
-      console.log('🔍 Fetching merchant data for user ID:', userId);
+      console.log('🔍 Fetching merchant data using secure RPC function for user ID:', userId);
       
-      // Add timeout to prevent infinite hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 5000)
-      );
-      
-      const dataPromise = supabase
-        .from('merchants')
-        .select(`
-          id,
-          name,
-          email,
-          restaurant_id,
-          role,
-          restaurants(restaurant_name)
-        `)
-        .eq('auth_user_id', userId)
+      // Use the new secure RPC function to bypass RLS performance issues
+      const { data, error } = await supabase
+        .rpc('get_my_merchant_data')
         .single();
-      
-      const result = await Promise.race([dataPromise, timeoutPromise]);
-      const { data, error } = result as any;
 
       if (error) {
         // PGRST116 means no rows were found, which is not a critical error here.
         if (error.code !== 'PGRST116') {
-            console.error('Error fetching merchant data:', error);
+            console.error('Error fetching merchant data via RPC:', error);
         } else {
             console.log('ℹ️ No merchant record found for this user ID.');
         }
@@ -118,20 +102,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data) {
-        console.log('✅ Found merchant data:', data);
+        console.log('✅ Found merchant data via secure RPC:', data);
         const merchantData = {
           id: data.id,
           name: data.name,
           email: data.email,
           restaurant_id: data.restaurant_id,
-          restaurant_name: data.restaurants?.restaurant_name,
+          restaurant_name: data.restaurant_name,
           role: data.role || 'merchant'
         };
         setMerchant(merchantData);
         setIsAdmin(merchantData.role === 'admin');
+        console.log('🔐 Admin status set to:', merchantData.role === 'admin');
       }
     } catch (error) {
-      console.error('❌ Exception in fetchMerchantData:', error);
+      console.error('❌ Exception in fetchMerchantData via RPC:', error);
       // Force clear loading state to prevent infinite hang
       setMerchant(null);
       setIsAdmin(false);
