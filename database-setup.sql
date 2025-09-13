@@ -1,14 +1,24 @@
 -- Database Schema for Discount Platform
 -- Create tables, indexes, RLS policies and RPC functions
 
--- Create enum for coupon status
-CREATE TYPE coupon_status AS ENUM ('unused', 'used');
+-- Create enum for coupon status (only if it doesn't exist)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'coupon_status') THEN
+        CREATE TYPE coupon_status AS ENUM ('unused', 'used');
+    END IF;
+END $$;
 
--- Create enum for restaurant category
-CREATE TYPE restaurant_category AS ENUM ('restaurant', 'cafe', 'bakery', 'other');
+-- Create enum for restaurant category (only if it doesn't exist)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'restaurant_category') THEN
+        CREATE TYPE restaurant_category AS ENUM ('restaurant', 'cafe', 'bakery', 'other');
+    END IF;
+END $$;
 
--- Create restaurants table
-CREATE TABLE restaurants (
+-- Create restaurants table (only if it doesn't exist)
+CREATE TABLE IF NOT EXISTS restaurants (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL, -- Generic name field (used for offer name)
     restaurant_name TEXT, -- Specific restaurant name
@@ -22,8 +32,8 @@ CREATE TABLE restaurants (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Create customers table
-CREATE TABLE customers (
+-- Create customers table (only if it doesn't exist)
+CREATE TABLE IF NOT EXISTS customers (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
@@ -32,8 +42,8 @@ CREATE TABLE customers (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Create merchants table for authentication
-CREATE TABLE merchants (
+-- Create merchants table for authentication (only if it doesn't exist)
+CREATE TABLE IF NOT EXISTS merchants (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
@@ -44,8 +54,8 @@ CREATE TABLE merchants (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
--- Create coupons table
-CREATE TABLE coupons (
+-- Create coupons table (only if it doesn't exist)
+CREATE TABLE IF NOT EXISTS coupons (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     code TEXT UNIQUE NOT NULL,
     customer_id UUID NOT NULL REFERENCES customers(id),
@@ -55,15 +65,15 @@ CREATE TABLE coupons (
     used_at TIMESTAMP WITH TIME ZONE NULL
 );
 
--- Create indexes for better performance
-CREATE INDEX idx_coupons_restaurant_id ON coupons(restaurant_id);
-CREATE INDEX idx_coupons_customer_id ON coupons(customer_id);
-CREATE INDEX idx_coupons_status ON coupons(status);
-CREATE INDEX idx_coupons_code ON coupons(code);
-CREATE INDEX idx_customers_email ON customers(email);
-CREATE INDEX idx_merchants_email ON merchants(email);
-CREATE INDEX idx_merchants_auth_user_id ON merchants(auth_user_id);
-CREATE INDEX idx_merchants_restaurant_id ON merchants(restaurant_id);
+-- Create indexes for better performance (only if they don't exist)
+CREATE INDEX IF NOT EXISTS idx_coupons_restaurant_id ON coupons(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_coupons_customer_id ON coupons(customer_id);
+CREATE INDEX IF NOT EXISTS idx_coupons_status ON coupons(status);
+CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
+CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
+CREATE INDEX IF NOT EXISTS idx_merchants_email ON merchants(email);
+CREATE INDEX IF NOT EXISTS idx_merchants_auth_user_id ON merchants(auth_user_id);
+CREATE INDEX IF NOT EXISTS idx_merchants_restaurant_id ON merchants(restaurant_id);
 
 -- Function to generate random coupon code
 CREATE OR REPLACE FUNCTION generate_coupon_code()
@@ -373,16 +383,19 @@ BEGIN
 END;
 $$;
 
--- Insert initial restaurant data
-INSERT INTO restaurants (name, image_url, discount_percentage, description, category) VALUES
+-- Insert initial restaurant data (only if restaurants table is empty)
+INSERT INTO restaurants (name, image_url, discount_percentage, description, category) 
+SELECT * FROM (VALUES
 ('Gourmet Bistro', 'https://images.unsplash.com/photo-1667388968964-4aa652df0a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRpbmluZ3xlbnwxfHx8fDE3NTc1ODE5MTN8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 30, 'Valid for dine-in or delivery', 'restaurant'),
 ('Cozy Corner Cafe', 'https://images.unsplash.com/photo-1682979358243-816a75830f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYWZlJTIwY29mZmVlJTIwaW50ZXJpb3J8ZW58MXx8fHwxNzU3NTk2ODQ5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 25, 'All beverages and pastries', 'cafe'),
 ('Mario''s Pizza Palace', 'https://images.unsplash.com/photo-1563245738-9169ff58eccf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMHJlc3RhdXJhbnR8ZW58MXx8fHwxNzU3NTI3NTA0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 40, 'Pizza and Italian dishes', 'restaurant'),
 ('The Burger Joint', 'https://images.unsplash.com/photo-1644447381290-85358ae625cb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjByZXN0YXVyYW50fGVufDF8fHx8MTc1NzU4Mjg0OXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 20, 'Gourmet burgers and fries', 'restaurant'),
 ('Sweet Dreams Bakery', 'https://images.unsplash.com/photo-1670819916757-e8d5935a6c65?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwYmFrZXJ5fGVufDF8fHx8MTc1NzU5Njg1Nnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 15, 'Fresh baked goods daily', 'bakery'),
-('Sakura Sushi', 'https://images.unsplash.com/photo-1717988732486-285ea23a6f88?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGphcGFuZXNlJTIwcmVzdGF1cmFudHxlbnwxfHx8fDE3NTc1MjY3NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 35, 'Authentic Japanese cuisine', 'restaurant');
+('Sakura Sushi', 'https://images.unsplash.com/photo-1717988732486-285ea23a6f88?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGphcGFuZXNlJTIwcmVzdGF1cmFudHxlbnwxfHx8fDE3NTc1MjY3NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral', 35, 'Authentic Japanese cuisine', 'restaurant')
+) AS new_data(name, image_url, discount_percentage, description, category)
+WHERE NOT EXISTS (SELECT 1 FROM restaurants LIMIT 1);
 
--- Insert initial merchant data (sample merchants for testing)
+-- Insert initial merchant data (sample merchants for testing) - only if merchants don't exist
 -- Note: auth_user_id will be updated when real users are created in Supabase Auth
 INSERT INTO merchants (name, email, restaurant_id, role, auth_user_id) 
 SELECT 
@@ -393,6 +406,7 @@ SELECT
     NULL  -- Will be linked when auth user is created
 FROM restaurants r 
 WHERE r.name = 'Gourmet Bistro'
+AND NOT EXISTS (SELECT 1 FROM merchants WHERE email = 'admin@platform.com')
 LIMIT 1;
 
 INSERT INTO merchants (name, email, restaurant_id, role, auth_user_id)
@@ -404,4 +418,5 @@ SELECT
     NULL  -- Will be linked when auth user is created
 FROM restaurants r 
 WHERE r.name = 'Gourmet Bistro'
+AND NOT EXISTS (SELECT 1 FROM merchants WHERE email = 'merchant@gourmet.com')
 LIMIT 1;
