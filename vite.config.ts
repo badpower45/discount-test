@@ -19,4 +19,8 @@ export default defineConfig({
       protocol: 'wss'
     }
   },
+  preview: {
+    port: 5000,
+    host: '0.0.0.0'
+  }
 });
