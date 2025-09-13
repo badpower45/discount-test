@@ -85,13 +85,13 @@ export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'cre
   try {
     // Use secure RPC function to bypass RLS policy conflicts
     const { data, error } = await supabase.rpc('add_restaurant_safe', {
-      restaurant_name: restaurantData.restaurant_name || restaurantData.name,
-      offer_name: restaurantData.offer_name || restaurantData.name,
-      image_url: restaurantData.image_url,
-      logo_url: restaurantData.logo_url || null,
-      discount_percentage: restaurantData.discount_percentage,
-      description: restaurantData.description,
-      category: restaurantData.category
+      p_restaurant_name: restaurantData.restaurant_name || restaurantData.name,
+      p_offer_name: restaurantData.offer_name || restaurantData.name,
+      p_image_url: restaurantData.image_url,
+      p_logo_url: restaurantData.logo_url || null,
+      p_discount_percentage: restaurantData.discount_percentage,
+      p_description: restaurantData.description,
+      p_category: restaurantData.category
     });
 
     if (error) {
