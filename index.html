@@ -5,54 +5,19 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Discount Platform Interface Design</title>
       <script>
-        // ULTIMATE FIX for mce-autosize-textarea conflict with Replit
+        // Fix for Replit environment conflicts
         (function() {
-          console.log('🛡️ Activating custom element protection...');
-          
-          // Intercept and block the problematic custom element
           const originalDefine = window.customElements.define;
-          const definedElements = new Set();
-          
           window.customElements.define = function(name, constructor, options) {
-            // Block the specific problematic element
-            if (name === 'mce-autosize-textarea') {
-              console.warn('🚫 BLOCKED: mce-autosize-textarea redefinition attempt');
-              return; // Silently ignore
-            }
-            
-            // Allow other elements but prevent duplicates
-            if (!definedElements.has(name) && !window.customElements.get(name)) {
+            if (!window.customElements.get(name)) {
               try {
                 originalDefine.call(this, name, constructor, options);
-                definedElements.add(name);
-                console.log('✅ Defined:', name);
               } catch (e) {
-                console.warn('⚠️ Failed to define:', name, '→', e.message);
+                console.warn('Skipped duplicate custom element:', name);
               }
-            } else {
-              console.log('🔄 Skipped duplicate:', name);
             }
           };
-
-          // Block the error that crashes React
-          window.addEventListener('error', function(event) {
-            if (event.error && event.error.message && 
-                (event.error.message.includes('mce-autosize-textarea') || 
-                 event.error.message.includes('already been defined'))) {
-              console.warn('🚫 BLOCKED ERROR:', event.error.message);
-              event.preventDefault();
-              event.stopPropagation();
-              return false;
-            }
-          }, true); // Use capture phase
-          
-          console.log('🛡️ Protection active - mce-autosize-textarea blocked');
         })();
-        
-        // Additional boot error handling
-        window.addEventListener('unhandledrejection', function(event) {
-          console.error('Promise rejection:', event.reason);
-        });
       </script>
     </head>
 
