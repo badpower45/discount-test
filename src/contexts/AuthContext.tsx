@@ -17,7 +17,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any; role?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -75,10 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchMerchantData = async (userId: string) => {
+  const fetchMerchantData = async (userId: string): Promise<MerchantData | null> => {
     if (!userId) {
       console.warn("fetchMerchantData called with no userId");
-      return;
+      return null;
     }
     
     try {
@@ -98,12 +98,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setMerchant(null);
         setIsAdmin(false);
-        return;
+        return null;
       }
 
       if (data) {
         console.log('✅ Found merchant data via secure RPC:', data);
-        const merchantData = {
+        const merchantData: MerchantData = {
           id: data.id,
           name: data.name,
           email: data.email,
@@ -114,18 +114,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMerchant(merchantData);
         setIsAdmin(merchantData.role === 'admin');
         console.log('🔐 Admin status set to:', merchantData.role === 'admin');
+        return merchantData;
       }
+      return null;
     } catch (error) {
       console.error('❌ Exception in fetchMerchantData via RPC:', error);
       // Force clear loading state to prevent infinite hang
       setMerchant(null);
       setIsAdmin(false);
+      return null;
     }
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (error) {
+      return { error, role: undefined };
+    }
+
+    if (signInData.user) {
+      // Fetch merchant data immediately after successful sign-in
+      const merchantData = await fetchMerchantData(signInData.user.id);
+      return { error: null, role: merchantData?.role || 'merchant' };
+    }
+
+    return { error: new Error("User not found after sign in"), role: undefined };
   };
 
   const signOut = async () => {

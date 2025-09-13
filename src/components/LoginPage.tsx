@@ -21,17 +21,26 @@ export function LoginPage() {
     setIsLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      const { error, role } = await signIn(email, password);
       
       if (error) {
         toast.error('خطأ في تسجيل الدخول: ' + error.message);
       } else {
         toast.success('تم تسجيل الدخول بنجاح!');
-        navigate('/merchant');
+        
+        // توجيه ذكي بناءً على دور المستخدم
+        if (role === 'admin') {
+          console.log('🚀 Redirecting admin to /admin dashboard');
+          navigate('/admin');
+        } else {
+          console.log('🚀 Redirecting merchant to /merchant dashboard');
+          navigate('/merchant');
+        }
       }
     } catch (error) {
-      toast.error('حدث خطأ أثناء تسجيل الدخول');
-      console.error('Login error:', error);
+      const err = error as Error;
+      toast.error('حدث خطأ أثناء تسجيل الدخول: ' + err.message);
+      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }
