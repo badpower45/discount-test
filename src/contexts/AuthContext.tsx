@@ -45,14 +45,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
+        // Set loading to false immediately so public pages can render
+        setLoading(false);
+        
+        // Fetch merchant data in background without blocking UI
         if (session?.user) {
-          await fetchMerchantData(session.user.id);
+          fetchMerchantData(session.user.id);
         } else {
           console.log('ℹ️ No active session - user can access public pages');
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
-      } finally {
         setLoading(false);
       }
     };
@@ -64,12 +67,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        await fetchMerchantData(session.user.id);
+        // Don't await - let merchant data load in background
+        fetchMerchantData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setMerchant(null);
         setIsAdmin(false);
       }
-      setLoading(false);
+      // No setLoading(false) needed here as it's already false
     });
 
     return () => subscription.unsubscribe();
