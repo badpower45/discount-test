@@ -41,17 +41,17 @@ export const fetchRestaurants = async (): Promise<Restaurant[]> => {
       .from('restaurants')
       .select('*')
       .order('created_at', { ascending: true });
-    
+
     if (error) {
       console.error('Error fetching restaurants:', error);
       return [];
     }
-    
+
     if (!data || data.length === 0) {
       console.warn('📝 No restaurants found in database');
       return [];
     }
-    
+
     console.log('✅ Successfully loaded restaurants from database');
     return data;
   } catch (err) {
@@ -67,12 +67,12 @@ export const fetchRestaurantById = async (id: string): Promise<Restaurant | null
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       console.error('Error fetching restaurant:', error);
       return null;
     }
-    
+
     return data;
   } catch (err) {
     console.error('Error in fetchRestaurantById:', err);
@@ -93,9 +93,9 @@ export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'cre
       console.error('Error adding restaurant:', error);
       return { success: false, error };
     }
-    
+
     console.log('✅ Successfully added restaurant:', data);
-    return { success: true, data: data };
+    return { success: true, data: data as Restaurant };
   } catch (err) {
     console.error('Error in addRestaurant:', err);
     return { success: false, error: err };
@@ -116,16 +116,16 @@ export const generateCoupon = async (
       customer_phone: customerPhone,
       restaurant_id: restaurantId
     });
-    
+
     if (error) {
       console.error('Error generating coupon:', error);
       return { success: false, error: error.message };
     }
-    
+
     if (data && data.length > 0) {
       return { success: true, coupon: data[0] };
     }
-    
+
     return { success: false, error: 'No coupon generated' };
   } catch (err) {
     console.error('Error in generateCoupon:', err);
@@ -143,16 +143,16 @@ export const validateCoupon = async (
       coupon_code: couponCode,
       restaurant_id: restaurantId
     });
-    
+
     if (error) {
       console.error('Error validating coupon:', error);
       return { success: false, error: error.message };
     }
-    
+
     if (data && data.length > 0 && data[0].is_valid) {
       return { success: true, coupon: data[0] };
     }
-    
+
     return { success: false, error: 'Invalid coupon' };
   } catch (err) {
     console.error('Error in validateCoupon:', err);
@@ -169,12 +169,12 @@ export const useCoupon = async (
       coupon_code: couponCode,
       restaurant_id: restaurantId
     });
-    
+
     if (error) {
       console.error('Error using coupon:', error);
       return { success: false, error: error.message };
     }
-    
+
     if (data && data.length > 0) {
       const result = data[0];
       if (result.success) {
@@ -183,7 +183,7 @@ export const useCoupon = async (
         return { success: false, error: result.message };
       }
     }
-    
+
     return { success: false, error: 'Failed to use coupon' };
   } catch (err) {
     console.error('Error in useCoupon:', err);
@@ -197,12 +197,12 @@ export const fetchRestaurantCoupons = async (restaurantId: string) => {
     const { data, error } = await supabase.rpc('get_restaurant_coupons', {
       restaurant_id: restaurantId
     });
-    
+
     if (error) {
       console.error('Error fetching restaurant coupons:', error);
       return [];
     }
-    
+
     return data || [];
   } catch (err) {
     console.error('Error in fetchRestaurantCoupons:', err);
@@ -217,12 +217,12 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
       .from('customers')
       .select('*')
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       console.error('Error fetching customers:', error);
       return [];
     }
-    
+
     console.log('✅ Successfully loaded customers from database');
     return data || [];
   } catch (err) {
@@ -238,23 +238,23 @@ export const fetchDashboardStats = async () => {
     const { count: restaurantCount } = await supabase
       .from('restaurants')
       .select('*', { count: 'exact', head: true });
-    
+
     // Fetch total customers
     const { count: customerCount } = await supabase
       .from('customers')
       .select('*', { count: 'exact', head: true });
-    
+
     // Fetch total coupons
     const { count: couponCount } = await supabase
       .from('coupons')
       .select('*', { count: 'exact', head: true });
-    
+
     // Fetch used coupons
     const { count: usedCouponCount } = await supabase
       .from('coupons')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'used');
-    
+
     return {
       totalRestaurants: restaurantCount || 0,
       totalCustomers: customerCount || 0,
@@ -282,7 +282,7 @@ export const subscribeToTables = (callback: () => void) => {
       console.warn('Supabase not properly initialized, skipping real-time subscriptions');
       return { unsubscribe: () => {} };
     }
-    
+
     const subscription = supabase
       .channel('db-changes')
       .on('postgres_changes', 
@@ -295,10 +295,30 @@ export const subscribeToTables = (callback: () => void) => {
           { event: '*', schema: 'public', table: 'restaurants' }, 
           callback)
       .subscribe();
-    
+
     return subscription;
   } catch (error) {
     console.warn('Failed to subscribe to database changes:', error);
     return { unsubscribe: () => {} };
+  }
+};
+
+// دالة لجلب جميع الكوبونات (ضرورية للوحة تحكم الأدمن)
+export const fetchAllCoupons = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all coupons:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchAllCoupons:', err);
+    return [];
   }
 };
