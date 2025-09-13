@@ -81,7 +81,7 @@ export const fetchRestaurantById = async (id: string): Promise<Restaurant | null
 };
 
 // Restaurant management functions
-export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
+export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at' | 'updated_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
   try {
     const { data, error } = await supabase
       .from('restaurants')
