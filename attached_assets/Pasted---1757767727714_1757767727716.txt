@@ -1,0 +1,110 @@
+وصف الطلب: إضافة ميزات جديدة وتحسين تدفق البيانات في منصة الخصومات
+ملخص:
+بعد حل مشكلة تسجيل دخول الأدمن بنجاح، نحتاج الآن إلى إضافة ميزتين رئيسيتين لتحسين وظائف المنصة:
+
+ضمان تسجيل العملاء في قاعدة البيانات: التأكد من أن أي عميل جديد يقوم بطلب كوبون خصم يتم تسجيل بياناته بشكل دائم في جدول customers في Supabase، وأن هذه البيانات تظهر بشكل صحيح في لوحات تحكم التاجر والمدير.
+
+إضافة مطعم جديد من لوحة تحكم الأدمن: تفعيل زر "Add Restaurant" في لوحة تحكم الأدمن، بحيث يسمح بإضافة مطعم جديد بالكامل من خلال واجهة التطبيق، مع حفظ البيانات مباشرة في قاعدة بيانات Supabase.
+
+المهمة الأولى: ضمان تسجيل وتدفق بيانات العملاء بشكل صحيح
+الهدف: عندما يقوم عميل جديد بإدخال بياناته (الاسم، البريد الإلكتروني، الهاتف) للحصول على كوبون، يجب أن يتم إنشاء سجل جديد له في جدول customers في Supabase. هذه البيانات يجب أن تكون مرئية بشكل فوري في لوحتي تحكم المدير والتاجر.
+
+الخطوات المطلوبة:
+
+1. تعديل CustomerDiscountPage.tsx:
+
+حاليًا، عند إرسال النموذج، يتم استدعاء الدالة generateCoupon من database-functions.ts. هذه الدالة تقوم بالفعل بإنشاء سجل للعميل في قاعدة البيانات.
+
+المطلوب: بعد نجاح عملية إنشاء الكوبون، يجب استدعاء دالة لتحديث قائمة العملاء والمطاعم في الحالة العامة للتطبيق (AppContext) لضمان ظهور البيانات الجديدة فورًا في لوحات التحكم الأخرى دون الحاجة لإعادة تحميل الصفحة.
+
+2. تعديل AppContext.tsx:
+
+الوضع الحالي: يتم تخزين قائمة العملاء (customers) في حالة محلية (local state) داخل الـ Context، وهذا يعني أن البيانات لا يتم جلبها من قاعدة البيانات بشكل دوري.
+
+المطلوب:
+
+تعديل AppProvider بحيث يقوم بجلب قائمة العملاء الكاملة من جدول customers في Supabase عند تحميل التطبيق لأول مرة.
+
+إضافة دالة جديدة باسم refreshData (أو ما شابه) داخل الـ Context، بحيث تقوم بإعادة جلب قائمة المطاعم والعملاء والكوبونات من قاعدة البيانات.
+
+يجب استدعاء هذه الدالة refreshData بعد أن يقوم العميل بإنشاء كوبون جديد بنجاح في CustomerDiscountPage.tsx.
+
+3. تعديل database-functions.ts:
+
+إضافة دالة جديدة باسم fetchCustomers تقوم بجلب جميع السجلات من جدول customers.
+
+مثال للكود:
+
+TypeScript
+
+export const fetchCustomers = async (): Promise<Customer[]> => {
+  const { data, error } = await supabase.from('customers').select('*');
+  if (error) {
+    console.error('Error fetching customers:', error);
+    return [];
+  }
+  return data;
+};
+المهمة الثانية: تفعيل خاصية إضافة مطعم جديد للأدمن
+الهدف: تمكين الأدمن من إضافة مطاعم وعروض جديدة مباشرة من لوحة التحكم الخاصة به.
+
+الخطوات المطلوبة:
+
+1. إضافة صلاحية (Policy) جديدة في Supabase:
+
+يجب إضافة صلاحية أمان (RLS policy) جديدة تسمح للمستخدمين الذين يحملون دور "admin" فقط بإضافة سجلات جديدة (INSERT) إلى جدول restaurants.
+
+مثال لكود الصلاحية:
+
+SQL
+
+CREATE POLICY "Admins can insert restaurants"
+ON public.restaurants FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM merchants
+    WHERE auth_user_id = auth.uid() AND role = 'admin'
+  )
+);
+2. إضافة دالة لإضافة مطعم في database-functions.ts:
+
+إنشاء دالة جديدة addRestaurant تقوم بأخذ بيانات المطعم كـ object وإضافتها إلى جدول restaurants في Supabase.
+
+مثال للكود:
+
+TypeScript
+
+export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'created_at'>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
+  const { data, error } = await supabase
+    .from('restaurants')
+    .insert([restaurantData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error adding restaurant:', error);
+    return { success: false, error };
+  }
+  return { success: true, data: data };
+};
+3. إنشاء مكون جديد AddRestaurantDialog.tsx:
+
+إنشاء مكون React جديد في src/components/ يحتوي على نموذج (form) لإضافة مطعم.
+
+يجب أن يحتوي النموذج على حقول لإدخال جميع بيانات المطعم المطلوبة (اسم المطعم، اسم العرض، نسبة الخصم، الوصف، رابط الصورة، رابط الشعار، الفئة).
+
+عند إرسال النموذج، يجب أن يقوم المكون باستدعاء دالة addRestaurant. بعد النجاح، يجب إغلاق النموذج وتحديث قائمة المطاعم.
+
+4. تعديل AdminDashboard.tsx:
+
+استيراد واستخدام المكون الجديد AddRestaurantDialog.tsx.
+
+استخدام useState للتحكم في فتح وإغلاق نافذة إضافة المطعم.
+
+عند الضغط على زر "Add Restaurant"، يتم فتح النافذة المنبثقة (Dialog).
+
+بعد إضافة المطعم بنجاح، يجب استدعاء دالة refreshOffers (الموجودة في AppContext) لتحديث القائمة المعروضة في لوحة التحكم فورًا.
+
+النتيجة المتوقعة:
+بعد تنفيذ هذه التعديلات، سيكون التطبيق قادرًا على تسجيل جميع العملاء الجدد في قاعدة البيانات، وتزويد الأدمن بواجهة كاملة لإدارة المطاعم، مما يجعل المنصة أكثر تكاملاً وجاهزية للاستخدام الفعلي.
