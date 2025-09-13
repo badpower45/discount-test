@@ -9,19 +9,13 @@ export default defineConfig({
       '@': path.resolve(process.cwd(), './src'),
     },
   },
-  define: {
-    global: 'globalThis',
-  },
   server: {
     host: '0.0.0.0',
     port: 5000,
-    strictPort: false,
-    allowedHosts: true,
+    strictPort: true,
     hmr: {
-      overlay: false,
       clientPort: 443,
       protocol: 'wss'
     }
   },
-  clearScreen: false,
 });

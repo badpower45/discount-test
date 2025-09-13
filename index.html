@@ -12,11 +12,46 @@
             originalDefine.call(this, name, constructor, options);
           }
         };
+        
+        // Capture early boot errors
+        window.onerror = function(msg, url, line, col, error) {
+          console.error('Early boot error:', msg, error);
+          document.body.innerHTML = '<pre id="boot-errors" style="color: red; padding: 20px;">Boot Error: ' + msg + (error ? '\n' + error.stack : '') + '</pre>';
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+          console.error('Unhandled promise rejection:', event.reason);
+          document.body.innerHTML = '<pre id="boot-errors" style="color: red; padding: 20px;">Promise Rejection: ' + event.reason + '</pre>';
+        });
       </script>
     </head>
 
     <body>
+      <div id="debug" style="position: fixed; top: 10px; right: 10px; background: #333; color: white; padding: 10px; z-index: 9999; max-width: 300px; font-size: 12px;"></div>
       <div id="root"></div>
+      <script>
+        // Console fallback for debugging
+        const debugDiv = document.getElementById('debug');
+        const originalLog = console.log;
+        const originalError = console.error;
+        
+        function addToDebug(type, message) {
+          const timestamp = new Date().toLocaleTimeString();
+          debugDiv.innerHTML += `<div style="color: ${type === 'error' ? 'red' : 'lightgreen'}">[${timestamp}] ${message}</div>`;
+          debugDiv.scrollTop = debugDiv.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+          originalLog.apply(console, args);
+          addToDebug('log', args.join(' '));
+        };
+        
+        console.error = function(...args) {
+          originalError.apply(console, args);
+          addToDebug('error', args.join(' '));
+        };
+        
+        addToDebug('log', '🔥 Debug mode active - JS executing');
+      </script>
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
