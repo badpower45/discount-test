@@ -146,47 +146,72 @@ export function MerchantDashboard() {
     }
 
     try {
-      // Use real database RPC function to validate coupon - but check any restaurant
-      const result = await validateCoupon(validateCode.trim(), '');
+      // First check if it's this merchant's coupon
+      const ownResult = await validateCoupon(validateCode.trim(), merchant.restaurant_id);
       
-      if (result.success && result.coupon) {
-        // Check if this coupon belongs to this merchant's restaurant
-        const isOwnRestaurant = result.coupon.restaurant_id === merchant.restaurant_id;
+      if (ownResult.success && ownResult.coupon) {
+        // It's this merchant's coupon - check if already used
+        const isAlreadyUsed = ownResult.coupon.status === 'used' || ownResult.coupon.is_used;
         
-        setValidationResult({
-          isValid: true,
-          code: {
-            ...result.coupon,
-            customerName: result.coupon.customer_name || 'Unknown',
-            customerEmail: result.coupon.customer_email || 'unknown@email.com',
-          },
-          message: isOwnRestaurant ? 'كود صحيح وجاهز للاستخدام - خاص بمطعمك' : 'كود صحيح ولكن خاص بمطعم آخر'
-        });
-        
-        if (isOwnRestaurant) {
-          toast.success('✅ كود صحيح وخاص بمطعمك!');
+        if (isAlreadyUsed) {
+          setValidationResult({
+            isValid: false,
+            code: {
+              ...ownResult.coupon,
+              customerName: ownResult.coupon.customer_name || 'Unknown',
+              customerEmail: ownResult.coupon.customer_email || 'unknown@email.com',
+              isUsed: true
+            },
+            message: 'هذا الكود مستخدم مسبقاً'
+          });
+          toast.error('⛔ هذا الكود مستخدم مسبقاً');
         } else {
-          toast.info('⚠️ كود صحيح ولكن خاص بمطعم آخر');
+          // Valid and unused - show full details
+          setValidationResult({
+            isValid: true,
+            code: {
+              ...ownResult.coupon,
+              customerName: ownResult.coupon.customer_name || 'Unknown',
+              customerEmail: ownResult.coupon.customer_email || 'unknown@email.com',
+              isUsed: false
+            },
+            message: 'كود صحيح وجاهز للاستخدام - خاص بمطعمك'
+          });
+          toast.success('✅ كود صحيح وخاص بمطعمك!');
         }
       } else {
-        setValidationResult({
-          isValid: false,
-          message: result.error || 'كود غير موجود أو مستخدم مسبقاً'
-        });
-        toast.error(result.error || 'كود غير صحيح');
+        // Not this merchant's coupon - check if it exists elsewhere (minimal info)
+        const globalResult = await validateCoupon(validateCode.trim(), '');
+        
+        if (globalResult.success && globalResult.coupon) {
+          // Valid code but for another restaurant - no customer details
+          setValidationResult({
+            isValid: false, // Set to false so "Mark as Used" won't show
+            code: null, // No code details for other restaurants
+            message: 'كود صحيح ولكن خاص بمطعم آخر'
+          });
+          toast.info('⚠️ كود صحيح ولكن خاص بمطعم آخر');
+        } else {
+          setValidationResult({
+            isValid: false,
+            message: 'كود غير موجود أو مستخدم مسبقاً'
+          });
+          toast.error('كود غير صحيح');
+        }
       }
     } catch (error) {
       console.error('Error validating coupon:', error);
       
-      // Fallback to local data for development/testing
-      const code = discountCodes.find(c => c.code === validateCode.trim());
+      // Secure fallback - only check own restaurant codes without exposing PII
+      const ownCodes = discountCodes.filter(c => c.offerId === merchant.restaurant_id);
+      const code = ownCodes.find(c => c.code === validateCode.trim());
       
       if (!code) {
         setValidationResult({
           isValid: false,
-          message: 'Code not found'
+          message: 'خطأ في الاتصال بقاعدة البيانات - يرجى المحاولة مرة أخرى'
         });
-        toast.error('Invalid code');
+        toast.error('خطأ في الاتصال بقاعدة البيانات');
         return;
       }
 
@@ -194,18 +219,18 @@ export function MerchantDashboard() {
         setValidationResult({
           isValid: false,
           code,
-          message: 'Code already used'
+          message: 'هذا الكود مستخدم مسبقاً'
         });
-        toast.error('Code already used');
+        toast.error('⛔ هذا الكود مستخدم مسبقاً');
         return;
       }
 
       setValidationResult({
         isValid: true,
         code,
-        message: 'Valid code'
+        message: 'كود صحيح (وضع اوفلاين)'
       });
-      toast.success('Valid code!');
+      toast.success('✅ كود صحيح (وضع اوفلاين)');
     }
   };
 
@@ -220,17 +245,27 @@ export function MerchantDashboard() {
       const result = await useCoupon(validationResult.code.code, merchant.restaurant_id);
       
       if (result.success) {
-        toast.success('Code successfully used!');
+        toast.success('تم استخدام الكود بنجاح!');
+        
         // Update local state for UI consistency
+        const updatedCoupons = realCoupons.map(coupon => 
+          coupon.code === validationResult.code.code 
+            ? { ...coupon, isUsed: true, usedAt: new Date() }
+            : coupon
+        );
+        setRealCoupons(updatedCoupons);
+        
+        // Update AppContext
         markCodeAsUsed(validationResult.code.id);
+        
         setValidationResult({
           isValid: false,
           code: { ...validationResult.code, isUsed: true },
-          message: 'Code marked as used'
+          message: 'تم استخدام الكود'
         });
         setValidateCode('');
       } else {
-        toast.error(result.error || 'Failed to use code');
+        toast.error(result.error || 'فشل في استخدام الكود');
       }
     } catch (error) {
       console.error('Error using coupon:', error);
