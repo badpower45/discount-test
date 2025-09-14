@@ -21,7 +21,7 @@ import {
   LogOut
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { validateCoupon, useCoupon, fetchRestaurantCoupons } from '../lib/database-functions';
+import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, type Restaurant } from '../lib/database-functions';
 import { useAuth } from '../contexts/AuthContext';
 
 export function MerchantDashboard() {
@@ -31,7 +31,7 @@ export function MerchantDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [validateCode, setValidateCode] = useState('');
   const [realCoupons, setRealCoupons] = useState<any[]>([]);
-  const [loadingCoupons, setLoadingCoupons] = useState(true);
+  const [restaurantInfo, setRestaurantInfo] = useState<Restaurant | null>(null);
   const [validationResult, setValidationResult] = useState<{
     isValid: boolean;
     code?: any;
@@ -45,23 +45,34 @@ export function MerchantDashboard() {
     }
   }, [user, loading, navigate]);
 
-  // Fetch real coupons for this merchant's restaurant
+  // Fetch restaurant info and coupons
   useEffect(() => {
     if (merchant?.restaurant_id) {
+      fetchRestaurantInfo();
       fetchMerchantCoupons();
     }
   }, [merchant]);
+
+  const fetchRestaurantInfo = async () => {
+    if (!merchant?.restaurant_id) return;
+    
+    try {
+      const restaurant = await fetchRestaurantById(merchant.restaurant_id);
+      setRestaurantInfo(restaurant);
+    } catch (error) {
+      console.error('Error fetching restaurant info:', error);
+    }
+  };
 
   const fetchMerchantCoupons = async () => {
     if (!merchant?.restaurant_id) return;
     
     try {
-      setLoadingCoupons(true);
       // Fetch real coupons from database
       const coupons = await fetchRestaurantCoupons(merchant.restaurant_id);
       
       // Convert to format expected by UI
-      const formattedCoupons = coupons.map(coupon => ({
+      const formattedCoupons = coupons.map((coupon: any) => ({
         id: coupon.coupon_id,
         code: coupon.code,
         customerId: coupon.customer_name,
@@ -85,8 +96,6 @@ export function MerchantDashboard() {
         code.offerId === merchant.restaurant_id
       );
       setRealCoupons(merchantCodes);
-    } finally {
-      setLoadingCoupons(false);
     }
   };
 
@@ -127,7 +136,7 @@ export function MerchantDashboard() {
     );
   }
 
-  const merchantName = merchant.restaurant_name || merchant.name;
+  const merchantName = restaurantInfo?.name || restaurantInfo?.restaurant_name || merchant.restaurant_name || merchant.name || 'اسم المطعم';
   const merchantCodes = realCoupons;
 
   const handleValidateCode = async () => {
@@ -137,10 +146,13 @@ export function MerchantDashboard() {
     }
 
     try {
-      // Use real database RPC function to validate coupon
-      const result = await validateCoupon(validateCode.trim(), merchant.restaurant_id);
+      // Use real database RPC function to validate coupon - but check any restaurant
+      const result = await validateCoupon(validateCode.trim(), '');
       
       if (result.success && result.coupon) {
+        // Check if this coupon belongs to this merchant's restaurant
+        const isOwnRestaurant = result.coupon.restaurant_id === merchant.restaurant_id;
+        
         setValidationResult({
           isValid: true,
           code: {
@@ -148,15 +160,20 @@ export function MerchantDashboard() {
             customerName: result.coupon.customer_name || 'Unknown',
             customerEmail: result.coupon.customer_email || 'unknown@email.com',
           },
-          message: 'Valid code ready to use'
+          message: isOwnRestaurant ? 'كود صحيح وجاهز للاستخدام - خاص بمطعمك' : 'كود صحيح ولكن خاص بمطعم آخر'
         });
-        toast.success('Valid code found!');
+        
+        if (isOwnRestaurant) {
+          toast.success('✅ كود صحيح وخاص بمطعمك!');
+        } else {
+          toast.info('⚠️ كود صحيح ولكن خاص بمطعم آخر');
+        }
       } else {
         setValidationResult({
           isValid: false,
-          message: result.error || 'Code not found or already used'
+          message: result.error || 'كود غير موجود أو مستخدم مسبقاً'
         });
-        toast.error(result.error || 'Invalid code');
+        toast.error(result.error || 'كود غير صحيح');
       }
     } catch (error) {
       console.error('Error validating coupon:', error);

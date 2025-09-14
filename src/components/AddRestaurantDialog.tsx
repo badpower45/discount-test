@@ -26,7 +26,7 @@ export function AddRestaurantDialog({ isOpen, onClose }: AddRestaurantDialogProp
     logo_url: '',
     discount_percentage: '',
     description: '',
-    category: 'restaurant' as 'restaurant' | 'cafe' | 'bakery' | 'other'
+    category: 'restaurant' as 'restaurant' | 'cafe' | 'bakery' | 'clothing' | 'other'
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,7 +41,7 @@ export function AddRestaurantDialog({ isOpen, onClose }: AddRestaurantDialogProp
   const handleSelectChange = (value: string) => {
     setFormData({
       ...formData,
-      category: value as 'restaurant' | 'cafe' | 'bakery' | 'other'
+      category: value as 'restaurant' | 'cafe' | 'bakery' | 'clothing' | 'other'
     });
   };
 
@@ -160,6 +160,7 @@ export function AddRestaurantDialog({ isOpen, onClose }: AddRestaurantDialogProp
                 <SelectItem value="restaurant">مطعم</SelectItem>
                 <SelectItem value="cafe">كافيه</SelectItem>
                 <SelectItem value="bakery">مخبز</SelectItem>
+                <SelectItem value="clothing">محل ملابس</SelectItem>
                 <SelectItem value="other">أخرى</SelectItem>
               </SelectContent>
             </Select>

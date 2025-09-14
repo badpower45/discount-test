@@ -10,7 +10,7 @@ export interface Restaurant {
   logo_url?: string;
   discount_percentage: number;
   description: string;
-  category: 'restaurant' | 'cafe' | 'bakery' | 'other';
+  category: 'restaurant' | 'cafe' | 'bakery' | 'clothing' | 'other';
   created_at: string;
   updated_at?: string; // جعل هذا الحقل اختياريًا هنا أيضًا
 }
@@ -195,7 +195,7 @@ export const useCoupon = async (
 // Function to fetch restaurant coupons
 export const fetchRestaurantCoupons = async (restaurantId: string) => {
   try {
-    const { data, error } = await supabase.rpc('get_restaurant_coupons', {
+    const { data, error } = await supabase.rpc('fetch_restaurant_coupons', {
       restaurant_id: restaurantId
     });
 
