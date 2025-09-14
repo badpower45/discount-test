@@ -9,7 +9,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 // Test components removed for production
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
-import { fetchRestaurants, fetchCustomers, subscribeToTables } from './lib/database-functions';
+import { fetchRestaurants, fetchCustomers, fetchAllCoupons } from './lib/database-functions';
+import { supabase } from './lib/supabase';
 import type { Restaurant } from './lib/database-functions';
 
 // App state type (now using database Restaurant type)
@@ -81,68 +82,60 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
 
-  // Load all data from database on mount
-  useEffect(() => {
-    loadAllData();
-    
-    // Only subscribe if we have credentials to avoid connection errors
-    let subscription: any = null;
-    
-    try {
-      // Subscribe to database changes for real-time updates
-      subscription = subscribeToTables(() => {
-        console.log('Database change detected, refreshing data...');
-        loadAllData();
-      });
-    } catch (error) {
-      console.warn('Could not subscribe to database changes:', error);
-    }
-    
-    return () => {
-      if (subscription && subscription.unsubscribe) {
-        subscription.unsubscribe();
-      }
-    };
-  }, []);
-
-  const loadRestaurants = async () => {
-    try {
-      const restaurants = await fetchRestaurants();
-      // Convert restaurants to compatible format
-      const compatibleOffers = restaurants.map(convertRestaurantToOffer);
-      setOffers(compatibleOffers);
-    } catch (error) {
-      console.error('Failed to load restaurants:', error);
-    }
-  };
-
-  const loadCustomers = async () => {
-    try {
-      const customers = await fetchCustomers();
-      setCustomers(customers);
-    } catch (error) {
-      console.error('Failed to load customers:', error);
-    }
-  };
-
   const loadAllData = async () => {
     setLoading(true);
     try {
-      await Promise.all([loadRestaurants(), loadCustomers()]);
+      const [restaurantsData, customersData, couponsData] = await Promise.all([
+        fetchRestaurants(),
+        fetchCustomers(),
+        fetchAllCoupons()
+      ]);
+
+      const compatibleOffers = restaurantsData.map(convertRestaurantToOffer);
+      setOffers(compatibleOffers);
+      setCustomers(customersData || []);
+
+      if (couponsData && customersData) {
+        const formattedCoupons = couponsData.map((c: any) => {
+          const customer = customersData.find((cust: any) => cust.id === c.customer_id);
+          return {
+            id: c.id,
+            code: c.code,
+            customerId: c.customer_id,
+            offerId: c.restaurant_id,
+            isUsed: c.status === 'used',
+            createdAt: new Date(c.created_at),
+            usedAt: c.used_at ? new Date(c.used_at) : undefined,
+            customerName: customer?.name || 'N/A',
+            customerEmail: customer?.email || 'N/A',
+            customerPhone: customer?.phone || 'N/A',
+          };
+        });
+        setDiscountCodes(formattedCoupons);
+      }
+
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('Failed to load initial data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshOffers = () => {
-    loadRestaurants();
-  };
-
-  const refreshData = () => {
+  useEffect(() => {
     loadAllData();
-  };
+
+    const channel = supabase.channel('db-changes');
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload: any) => {
+        console.log('Database change detected:', payload);
+        loadAllData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const addDiscountCode = (code: DiscountCode) => {
     setDiscountCodes(prev => [...prev, code]);
@@ -157,15 +150,21 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addCustomer = (customer: Customer) => {
-    setCustomers(prev => [...prev, customer]);
+    // تجنب إضافة عملاء مكررين في الحالة المحلية
+    setCustomers(prev => {
+      if (prev.find(c => c.email === customer.email)) {
+        return prev;
+      }
+      return [...prev, customer];
+    });
   };
 
   return (
     <AppContext.Provider value={{
       offers,
       loading,
-      refreshOffers,
-      refreshData,
+      refreshOffers: loadAllData,
+      refreshData: loadAllData,
       discountCodes,
       customers,
       addDiscountCode,

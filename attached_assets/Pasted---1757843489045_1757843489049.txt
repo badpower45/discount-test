@@ -1,0 +1,175 @@
+المشكلة:
+عندما يقوم العميل بطلب كوبون خصم، تتم العملية بنجاح في قاعدة البيانات، ولكن لا يتم تحديث واجهة المستخدم لعرض الكود أو صفحة النجاح، مما يوهم المستخدم بأن العملية فشلت.
+
+الحل المطلوب:
+تعديل الكود لضمان معالجة الاستجابة من قاعدة البيانات بشكل صحيح وتحديث واجهة المستخدم بناءً عليها.
+
+الخطوة الأولى: إصلاح دالة إنشاء الكوبون في CustomerDiscountPage.tsx
+
+افتح ملف src/components/CustomerDiscountPage.tsx.
+
+ابحث عن دالة handleSubmit.
+
+استبدل الكود الحالي بالكامل بالكود المحدّث التالي. هذا الكود سيضمن أنه يتم التعامل مع الكود الحقيقي القادم من قاعدة البيانات:
+
+TypeScript
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+
+  try {
+    // استدعاء الدالة لإنشاء الكوبون في قاعدة البيانات
+    const result = await generateCoupon(
+      formData.name,
+      formData.email,
+      formData.phone,
+      offer.id
+    );
+
+    if (result.success && result.coupon) {
+      // نجاح! تم إنشاء الكوبون في قاعدة البيانات
+      console.log('✅ Generated coupon from database:', result.coupon);
+
+      const newCode: DiscountCode = {
+        id: result.coupon.coupon_id,
+        code: result.coupon.code,
+        customerId: '', // يمكن ترك هذا فارغًا أو جلب ID العميل إذا لزم الأمر
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        offerId: offer.id,
+        isUsed: false,
+        createdAt: new Date(result.coupon.created_at)
+      };
+
+      // إضافة الكود الجديد إلى الحالة العامة للتطبيق
+      addDiscountCode(newCode);
+      addCustomer({ id: '', ...formData }); // إضافة العميل للحالة المحلية أيضًا
+
+      setGeneratedCode(result.coupon.code); // <--- أهم خطوة: تحديث الواجهة بالكود الصحيح
+      toast.success('Discount code generated successfully!');
+
+    } else {
+      // فشل إنشاء الكوبون في قاعدة البيانات
+      console.error('Failed to generate coupon from database:', result.error);
+      toast.error(`Failed to generate code: ${result.error || 'Please try again.'}`);
+    }
+  } catch (error) {
+    console.error('Error generating coupon:', error);
+    toast.error('An unexpected error occurred. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+الخطوة الثانية: تحديث دالة AppProvider لجلب كل البيانات عند الحاجة
+
+لضمان أن البيانات محدثة دائمًا، سنقوم بتحسين دالة refreshData في AppContext.
+
+افتح ملف src/App.tsx.
+
+ابحث عن دالة AppProvider.
+
+استبدل الكود الخاص بها بالكامل بالكود المحدّث التالي، الذي يقوم بجلب جميع البيانات وتنسيقها بشكل صحيح:
+
+TypeScript
+
+function AppProvider({ children }: { children: React.ReactNode }) {
+  const [offers, setOffers] = useState<(Restaurant & { image: string; discount: number })[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+
+  const loadAllData = async () => {
+    setLoading(true);
+    try {
+      const [restaurantsData, customersData, couponsData] = await Promise.all([
+        fetchRestaurants(),
+        fetchCustomers(),
+        fetchAllCoupons()
+      ]);
+
+      const compatibleOffers = restaurantsData.map(convertRestaurantToOffer);
+      setOffers(compatibleOffers);
+      setCustomers(customersData || []);
+
+      if (couponsData && customersData) {
+        const formattedCoupons = couponsData.map((c: any) => {
+          const customer = customersData.find((cust: any) => cust.id === c.customer_id);
+          return {
+            id: c.id,
+            code: c.code,
+            customerId: c.customer_id,
+            offerId: c.restaurant_id,
+            isUsed: c.status === 'used',
+            createdAt: new Date(c.created_at),
+            usedAt: c.used_at ? new Date(c.used_at) : undefined,
+            customerName: customer?.name || 'N/A',
+            customerEmail: customer?.email || 'N/A',
+            customerPhone: customer?.phone || 'N/A',
+          };
+        });
+        setDiscountCodes(formattedCoupons);
+      }
+
+    } catch (error) {
+      console.error('Failed to load initial data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAllData();
+
+    const channel = supabase.channel('db-changes');
+    const subscription = channel
+      .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        console.log('Database change detected:', payload);
+        loadAllData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const addDiscountCode = (code: DiscountCode) => {
+    setDiscountCodes(prev => [...prev, code]);
+  };
+
+  const markCodeAsUsed = (codeId: string) => {
+    setDiscountCodes(prev => prev.map(code => 
+      code.id === codeId 
+        ? { ...code, isUsed: true, usedAt: new Date() }
+        : code
+    ));
+  };
+
+  const addCustomer = (customer: Customer) => {
+    // تجنب إضافة عملاء مكررين في الحالة المحلية
+    setCustomers(prev => {
+      if (prev.find(c => c.email === customer.email)) {
+        return prev;
+      }
+      return [...prev, customer];
+    });
+  };
+
+  return (
+    <AppContext.Provider value={{
+      offers,
+      loading,
+      refreshData: loadAllData,
+      discountCodes,
+      customers,
+      addDiscountCode,
+      markCodeAsUsed,
+      addCustomer
+    }}>
+      {children}
+    </AppContext.Provider>
+  );
+}
+بعد تطبيق هذين الإصلاحين، ستعمل ميزة إنشاء الكوبونات بشكل صحيح تمامًا، حيث سيتم عرض الكود الصحيح وشاشة النجاح للعميل، وسيتم تحديث البيانات في جميع أنحاء التطبيق.

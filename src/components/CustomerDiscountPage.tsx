@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { AppContext, type Customer, type DiscountCode } from '../App';
+import { AppContext, type DiscountCode } from '../App';
 import { generateCoupon } from '../lib/database-functions';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 export function CustomerDiscountPage() {
   const { offerId } = useParams<{ offerId: string }>();
   const navigate = useNavigate();
-  const { offers, addDiscountCode, addCustomer, refreshData } = useContext(AppContext);
+  const { offers, addDiscountCode, addCustomer } = useContext(AppContext);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -44,18 +44,13 @@ export function CustomerDiscountPage() {
     });
   };
 
-  const generateDiscountCode = () => {
-    const prefix = 'EGY';
-    const number = Math.floor(10000 + Math.random() * 90000);
-    return `${prefix}-${number}`;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Try to generate coupon using database RPC function
+      // استدعاء الدالة لإنشاء الكوبون في قاعدة البيانات
       const result = await generateCoupon(
         formData.name,
         formData.email,
@@ -64,49 +59,36 @@ export function CustomerDiscountPage() {
       );
 
       if (result.success && result.coupon) {
-        const code = result.coupon.code;
-        console.log('✅ Generated coupon from database');
-        
-        // Only add to local state and show success if database operation succeeded
-        const customerId = Date.now().toString();
-        const codeId = Date.now().toString();
+        // نجاح! تم إنشاء الكوبون في قاعدة البيانات
+        console.log('✅ Generated coupon from database:', result.coupon);
 
-        const customer: Customer = {
-          id: customerId,
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone
-        };
-        addCustomer(customer);
-
-        const discountCode: DiscountCode = {
-          id: codeId,
-          code,
-          customerId,
+        const newCode: DiscountCode = {
+          id: result.coupon.coupon_id,
+          code: result.coupon.code,
+          customerId: '', // يمكن ترك هذا فارغًا أو جلب ID العميل إذا لزم الأمر
           customerName: formData.name,
           customerEmail: formData.email,
           customerPhone: formData.phone,
           offerId: offer.id,
           isUsed: false,
-          createdAt: new Date()
+          createdAt: new Date(result.coupon.created_at)
         };
-        addDiscountCode(discountCode);
 
-        // Refresh all data to ensure new customer appears in dashboards
-        console.log('🔄 Refreshing data after successful coupon generation');
-        refreshData();
+        // إضافة الكود الجديد إلى الحالة العامة للتطبيق
+        addDiscountCode(newCode);
+        addCustomer({ id: '', ...formData }); // إضافة العميل للحالة المحلية أيضًا
 
-        setGeneratedCode(code);
-        toast.success('تم إنشاء كود الخصم بنجاح!');
+        setGeneratedCode(result.coupon.code); // <--- أهم خطوة: تحديث الواجهة بالكود الصحيح
+        toast.success('Discount code generated successfully!');
+
       } else {
-        // If database operation failed, show error instead of fallback
-        console.error('❌ Failed to generate coupon from database:', result.error);
-        toast.error('فشل في إنشاء كود الخصم. يرجى المحاولة مرة أخرى.');
-        return;
+        // فشل إنشاء الكوبون في قاعدة البيانات
+        console.error('Failed to generate coupon from database:', result.error);
+        toast.error(`Failed to generate code: ${result.error || 'Please try again.'}`);
       }
     } catch (error) {
       console.error('Error generating coupon:', error);
-      toast.error('Failed to generate discount code. Please try again.');
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
