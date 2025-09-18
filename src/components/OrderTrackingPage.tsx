@@ -174,6 +174,7 @@ export function OrderTrackingPage() {
             </div>
           </div>
         </div>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* تقدم الطلب */}
