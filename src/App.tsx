@@ -128,7 +128,7 @@ function AppProvider({ children }: { children: React.ReactNode }) {
     loadAllData();
 
     const channel = supabase.channel('db-changes');
-    channel
+    const subscription = channel
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload: any) => {
         console.log('Database change detected:', payload);
         loadAllData();
@@ -136,7 +136,9 @@ function AppProvider({ children }: { children: React.ReactNode }) {
       .subscribe();
 
     return () => {
-      channel.unsubscribe();
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
