@@ -437,71 +437,77 @@ export const createOrder = async (orderData: {
     landmark?: string;
   };
   special_instructions?: string;
-}, customerData?: { name: string; email: string; phone: string; }): Promise<{ success: boolean; order?: Order; error?: string }> => {
+}): Promise<{ success: boolean; order?: Order; error?: string }> => {
   try {
     let customerId: string;
     
-    if (customerData) {
-      // Try to find existing customer
+    // Try to get authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      // Authenticated user flow: find or create customer linked to auth
       let { data: customer } = await supabase
         .from('customers')
         .select('id')
-        .eq('email', customerData.email)
+        .eq('auth_user_id', user.id)
         .single();
 
       if (!customer) {
         const { data: newCustomer, error: newCustomerError } = await supabase
           .from('customers')
-          .insert(customerData)
+          .insert({
+            auth_user_id: user.id,
+            name: orderData.customer_name,
+            email: user.email!,
+            phone: orderData.customer_phone
+          })
           .select('id')
           .single();
 
-        if (newCustomerError) throw new Error(`Error creating customer: ${newCustomerError.message}`);
+        if (newCustomerError) throw new Error(`Error creating customer profile: ${newCustomerError.message}`);
         customer = newCustomer;
       }
       customerId = customer!.id;
     } else {
-      // Create anonymous customer record
+      // Anonymous user flow: create guest customer
       const { data: anonCustomer, error: anonError } = await supabase
         .from('customers')
         .insert({
           name: orderData.customer_name,
-          email: `${Date.now()}@anonymous.com`,
+          email: `guest_${Date.now()}@anonymous.com`,
           phone: orderData.customer_phone
         })
         .select('id')
         .single();
 
-      if (anonError) throw new Error(`Error creating customer: ${anonError.message}`);
+      if (anonError) throw new Error(`Error creating guest customer: ${anonError.message}`);
       customerId = anonCustomer!.id;
     }
 
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-    // Prepare order data with proper mapping
+    // Prepare order data with proper defaults and explicit mapping
     const finalOrderData = {
       order_number: orderNumber,
       customer_id: customerId,
       restaurant_id: orderData.restaurant_id,
       delivery_driver_id: null,
-      coupon_id: orderData.coupon_id || null,
       customer_name: orderData.customer_name,
       customer_phone: orderData.customer_phone,
       customer_address: orderData.customer_address,
       order_items: orderData.order_items,
       subtotal: orderData.subtotal,
       tax_amount: orderData.tax_amount,
-      total_price: orderData.total_price,
       delivery_fee: orderData.delivery_fee,
-      currency: 'EGP',
+      total_price: orderData.total_price,
       delivery_address_snapshot: orderData.delivery_address,
+      special_instructions: orderData.special_instructions || null,
       status: 'pending_restaurant_acceptance' as const,
-      special_instructions: orderData.special_instructions,
-      estimated_delivery_time: null,
-      pickup_time: null,
       delivered_at: null
     };
+
+    console.log('🔄 Attempting to insert order:', JSON.stringify(finalOrderData, null, 2));
 
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
@@ -509,13 +515,18 @@ export const createOrder = async (orderData: {
       .select()
       .single();
 
-    if (orderError) throw new Error(orderError.message);
+    if (orderError) {
+      console.error('❌ Database error details:', JSON.stringify(orderError, null, 2));
+      throw new Error(`Error inserting order: ${orderError.message || JSON.stringify(orderError)}`);
+    }
 
     return { success: true, order: newOrder };
-
   } catch (err: any) {
-    console.error('Error in createOrder:', err);
-    return { success: false, error: err.message };
+    console.error('❌ Full error details in createOrder:', JSON.stringify(err, null, 2));
+    console.error('❌ Error message:', err?.message);
+    console.error('❌ Error details:', err?.details);
+    const errorMsg = err?.message || err?.error?.message || JSON.stringify(err) || 'Unknown error occurred';
+    return { success: false, error: errorMsg };
   }
 };
 

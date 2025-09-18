@@ -403,7 +403,7 @@ export function MerchantDashboard() {
             </div>
             <div className="flex-1">
               <h2 className="text-sm font-medium text-gray-900">لوحة تحكم التاجر</h2>
-              <p className="text-xs text-blue-600 font-semibold mt-1">{merchantName}</p>
+              <p className="text-xs text-blue-600 font-semibold mt-1">{restaurantInfo?.restaurant_name || merchantName}</p>
               {restaurantInfo?.offer_name && (
                 <p className="text-xs text-gray-500">العرض: {restaurantInfo.offer_name}</p>
               )}
