@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Grid3X3, Coffee, UtensilsCrossed, Tag, MapPin, TrendingDown, Clock } from 'lucide-react';
+import { Grid3X3, Coffee, UtensilsCrossed, Tag, MapPin, TrendingDown, Clock, ShoppingCart } from 'lucide-react';
 
 export function LandingPage() {
   const { offers } = useContext(AppContext);
@@ -23,6 +23,10 @@ export function LandingPage() {
 
   const handleGetDiscount = (offerId: string) => {
     navigate(`/get-discount/${offerId}`);
+  };
+
+  const handleOrderNow = (offerId: string) => {
+    navigate(`/order/${offerId}`);
   };
 
   return (
@@ -153,12 +157,23 @@ export function LandingPage() {
                     </div>
                   </div>
                   
-                  <Button 
-                    onClick={() => handleGetDiscount(offer.id)}
-                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
-                  >
-                    Get Discount
-                  </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      onClick={() => handleGetDiscount(offer.id)}
+                      variant="outline"
+                      className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                    >
+                      <Tag className="w-4 h-4 mr-2" />
+                      Get Discount
+                    </Button>
+                    <Button 
+                      onClick={() => handleOrderNow(offer.id)}
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+                    >
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Order Now
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}

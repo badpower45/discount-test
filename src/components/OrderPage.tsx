@@ -21,10 +21,7 @@ export function OrderPage() {
   const { offers } = useContext(AppContext);
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    { name: 'وجبة مميزة', price: 45.00, quantity: 1 },
-    { name: 'مشروب طازج', price: 15.00, quantity: 1 }
-  ]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
@@ -46,12 +43,34 @@ export function OrderPage() {
   useEffect(() => {
     const loadRestaurant = async () => {
       if (restaurantId) {
-        const restaurantData = await fetchRestaurantById(restaurantId);
-        setRestaurant(restaurantData);
+        // First try to find the restaurant in the offers (which have discount info)
+        const offerData = offers.find(offer => offer.id === restaurantId);
+        if (offerData) {
+          setRestaurant(offerData);
+          // Set default order items based on the offer
+          setOrderItems([
+            { name: offerData.offer_name || offerData.name, price: 50.00, quantity: 1 },
+            { name: 'Side Drink', price: 15.00, quantity: 1 }
+          ]);
+        } else {
+          // Fallback to fetching from database
+          const restaurantData = await fetchRestaurantById(restaurantId);
+          setRestaurant(restaurantData);
+          if (restaurantData) {
+            setOrderItems([
+              { name: restaurantData.name + ' Special', price: 50.00, quantity: 1 },
+              { name: 'Side Drink', price: 15.00, quantity: 1 }
+            ]);
+          }
+        }
       } else {
-        // استخدام أول مطعم متاح إذا لم يتم تحديد معرف
+        // Use first available restaurant if no ID specified
         if (offers.length > 0) {
           setRestaurant(offers[0]);
+          setOrderItems([
+            { name: offers[0].offer_name || offers[0].name, price: 50.00, quantity: 1 },
+            { name: 'Side Drink', price: 15.00, quantity: 1 }
+          ]);
         }
       }
     };
@@ -72,31 +91,42 @@ export function OrderPage() {
   };
 
   const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const discountPercentage = restaurant?.discount_percentage || restaurant?.discount || 0;
+  const discountAmount = subtotal * (discountPercentage / 100);
+  const afterDiscount = subtotal - discountAmount;
   const deliveryFee = 10.00;
-  const taxAmount = subtotal * 0.1; // 10% ضريبة
-  const total = subtotal + deliveryFee + taxAmount;
+  const taxAmount = afterDiscount * 0.1; // 10% tax on discounted amount
+  const total = afterDiscount + deliveryFee + taxAmount;
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation checks
+    if (orderItems.length === 0) {
+      alert('Please add items to your order before submitting.');
+      return;
+    }
+
+    if (!restaurant) {
+      alert('Restaurant information is missing. Please try again.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      if (!restaurant) {
-        throw new Error('المطعم غير محدد');
-      }
 
       const orderData = {
-        customer_id: '', // سيتم إنشاؤه في الـ RPC
+        customer_id: `temp_${Date.now()}`, // Temporary ID, will be handled by RPC
         restaurant_id: restaurant.id,
         customer_name: customerInfo.name,
         customer_phone: customerInfo.phone,
-        customer_address: customerInfo.address,
+        customer_address: `${customerInfo.address}, ${customerInfo.city}`,
         order_items: orderItems,
-        subtotal: subtotal,
+        subtotal: afterDiscount, // Use discounted amount as subtotal
         tax_amount: taxAmount,
         total_price: total,
         delivery_fee: deliveryFee,
-        currency: 'EGP',
         delivery_address: {
           address: customerInfo.address,
           city: customerInfo.city,
@@ -181,10 +211,49 @@ export function OrderPage() {
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-6">
           <Button variant="outline" onClick={() => navigate('/')} className="mb-4">
-            ← العودة للصفحة الرئيسية
+            ← Back to Offers
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">طلب توصيل من {restaurant.restaurant_name}</h1>
-          <p className="text-gray-600">{restaurant.description}</p>
+          
+          {/* Offer Summary Section */}
+          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="relative mr-4">
+                  <img 
+                    src={restaurant.image || restaurant.image_url} 
+                    alt={restaurant.restaurant_name || restaurant.name}
+                    className="w-20 h-20 rounded-lg object-cover"
+                  />
+                  {restaurant.logo_url && (
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-white rounded-full shadow-sm flex items-center justify-center border border-gray-200">
+                      <img
+                        src={restaurant.logo_url}
+                        alt={`${restaurant.restaurant_name || restaurant.name} logo`}
+                        className="w-6 h-6 object-contain rounded-full"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm text-gray-500 uppercase tracking-wide">{restaurant.restaurant_name || restaurant.name}</h3>
+                      <h1 className="text-2xl font-bold text-gray-900">{restaurant.offer_name || 'Delivery Order'}</h1>
+                      <p className="text-gray-600">{restaurant.description}</p>
+                    </div>
+                    {discountPercentage > 0 && (
+                      <div className="text-right">
+                        <div className="bg-green-500 text-white px-4 py-2 rounded-full text-lg font-bold">
+                          -{discountPercentage}% OFF
+                        </div>
+                        <p className="text-sm text-green-600 mt-1">Special Offer Applied!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
@@ -233,21 +302,32 @@ export function OrderPage() {
 
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between">
-                    <span>المجموع الفرعي:</span>
-                    <span>{subtotal.toFixed(2)} ج.م</span>
+                    <span>Subtotal:</span>
+                    <span>EGP {subtotal.toFixed(2)}</span>
+                  </div>
+                  {discountPercentage > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount ({discountPercentage}%):</span>
+                      <span>-EGP {discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span>Delivery Fee:</span>
+                    <span>EGP {deliveryFee.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>رسوم التوصيل:</span>
-                    <span>{deliveryFee.toFixed(2)} ج.م</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>الضرائب:</span>
-                    <span>{taxAmount.toFixed(2)} ج.م</span>
+                    <span>Tax (10%):</span>
+                    <span>EGP {taxAmount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg border-t pt-2">
-                    <span>المجموع النهائي:</span>
-                    <span>{total.toFixed(2)} ج.م</span>
+                    <span>Total:</span>
+                    <span>EGP {total.toFixed(2)}</span>
                   </div>
+                  {discountPercentage > 0 && (
+                    <div className="text-sm text-green-600 text-center pt-2">
+                      🎉 You saved EGP {discountAmount.toFixed(2)} with {restaurant?.restaurant_name || restaurant?.name}!
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
