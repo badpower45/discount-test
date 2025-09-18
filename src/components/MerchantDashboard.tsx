@@ -18,10 +18,14 @@ import {
   XCircle,
   TrendingUp,
   ArrowLeft,
-  LogOut
+  LogOut,
+  ShoppingCart,
+  Clock,
+  Package,
+  Truck
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, type Restaurant } from '../lib/database-functions';
+import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, getOrdersByStatus, updateOrderStatus, type Restaurant, type Order } from '../lib/database-functions';
 import { useAuth } from '../contexts/AuthContext';
 
 export function MerchantDashboard() {
@@ -38,6 +42,9 @@ export function MerchantDashboard() {
     message: string;
   } | null>(null);
   const [isUsingCode, setIsUsingCode] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [processingOrder, setProcessingOrder] = useState<string | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -51,8 +58,18 @@ export function MerchantDashboard() {
     if (merchant?.restaurant_id) {
       fetchRestaurantInfo();
       fetchMerchantCoupons();
+      fetchOrders();
     }
   }, [merchant]);
+
+  // Auto-refresh orders every 30 seconds when on orders tab
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (activeTab === 'orders' && merchant?.restaurant_id) {
+      interval = setInterval(fetchOrders, 30000);
+    }
+    return () => clearInterval(interval);
+  }, [activeTab, merchant]);
 
   const fetchRestaurantInfo = async () => {
     if (!merchant?.restaurant_id) return;
@@ -62,6 +79,21 @@ export function MerchantDashboard() {
       setRestaurantInfo(restaurant);
     } catch (error) {
       console.error('Error fetching restaurant info:', error);
+    }
+  };
+
+  const fetchOrders = async () => {
+    if (!merchant?.restaurant_id) return;
+    
+    setLoadingOrders(true);
+    try {
+      const fetchedOrders = await getOrdersByStatus(undefined, merchant.restaurant_id);
+      setOrders(fetchedOrders);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
+    } finally {
+      setLoadingOrders(false);
     }
   };
 
@@ -303,6 +335,54 @@ export function MerchantDashboard() {
     }
   };
 
+  const handleOrderStatusUpdate = async (orderId: string, newStatus: Order['status']) => {
+    setProcessingOrder(orderId);
+    try {
+      const result = await updateOrderStatus(orderId, newStatus);
+      if (result.success) {
+        toast.success(`Order ${newStatus} successfully`);
+        await fetchOrders(); // Refresh orders
+      } else {
+        toast.error(result.error || 'Failed to update order status');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
+    } finally {
+      setProcessingOrder(null);
+    }
+  };
+
+  const getStatusBadgeColor = (status: Order['status']) => {
+    switch (status) {
+      case 'pending_restaurant_acceptance': return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'preparing': return 'bg-orange-100 text-orange-800';
+      case 'ready_for_pickup': return 'bg-green-100 text-green-800';
+      case 'assigned_to_driver': return 'bg-purple-100 text-purple-800';
+      case 'picked_up': return 'bg-purple-200 text-purple-900';
+      case 'in_transit': return 'bg-indigo-100 text-indigo-800';
+      case 'delivered': return 'bg-green-500 text-white';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status: Order['status']) => {
+    switch (status) {
+      case 'pending_restaurant_acceptance': return <Clock className="w-4 h-4" />;
+      case 'confirmed': return <CheckCircle className="w-4 h-4" />;
+      case 'preparing': return <Package className="w-4 h-4" />;
+      case 'ready_for_pickup': return <CheckCircle className="w-4 h-4" />;
+      case 'assigned_to_driver': return <Truck className="w-4 h-4" />;
+      case 'picked_up': return <Truck className="w-4 h-4" />;
+      case 'in_transit': return <Truck className="w-4 h-4" />;
+      case 'delivered': return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled': return <XCircle className="w-4 h-4" />;
+      default: return <Clock className="w-4 h-4" />;
+    }
+  };
+
   const totalCodes = merchantCodes.length;
   const usedCodes = merchantCodes.filter(code => code.isUsed).length;
   const unusedCodes = totalCodes - usedCodes;
@@ -341,6 +421,15 @@ export function MerchantDashboard() {
                 >
                   <Search className="w-4 h-4" />
                   Validate Codes
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setActiveTab('orders')}
+                  isActive={activeTab === 'orders'}
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                  Current Orders
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -583,6 +672,167 @@ export function MerchantDashboard() {
     </div>
   );
 
+  const OrdersContent = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl text-gray-900 mb-2">Current Orders</h1>
+          <p className="text-gray-600">Manage incoming orders for your restaurant</p>
+        </div>
+        <Button
+          onClick={fetchOrders}
+          disabled={loadingOrders}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          {loadingOrders ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+          ) : (
+            <Clock className="w-4 h-4" />
+          )}
+          Refresh
+        </Button>
+      </div>
+
+      {loadingOrders ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      ) : orders.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg text-gray-600 mb-2">No orders yet</h3>
+            <p className="text-gray-500">New orders will appear here when customers place them.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {orders.map((order) => (
+            <Card key={order.id} className="overflow-hidden">
+              <CardContent className="p-0">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(order.status)}
+                        <span className="text-sm font-medium">Order #{order.id.slice(0, 8)}</span>
+                      </div>
+                      <Badge className={getStatusBadgeColor(order.status)}>
+                        {order.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">{new Date(order.created_at).toLocaleDateString()}</p>
+                      <p className="text-sm text-gray-600">{new Date(order.created_at).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Customer Information</h4>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p><strong>Name:</strong> {order.customer_name}</p>
+                        <p><strong>Phone:</strong> {order.customer_phone}</p>
+                        <p><strong>Address:</strong> {order.customer_address}</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Order Details</h4>
+                      <div className="text-sm text-gray-600 space-y-1">
+                        <p><strong>Total:</strong> EGP {order.total_price?.toFixed(2)}</p>
+                        <p><strong>Items:</strong> {order.order_items?.length || 0} items</p>
+                        {order.special_instructions && (
+                          <p><strong>Instructions:</strong> {order.special_instructions}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {order.status === 'pending_restaurant_acceptance' && (
+                    <div className="flex gap-3 mt-6 pt-4 border-t">
+                      <Button
+                        onClick={() => handleOrderStatusUpdate(order.id, 'confirmed')}
+                        disabled={processingOrder === order.id}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        Accept Order
+                      </Button>
+                      <Button
+                        onClick={() => handleOrderStatusUpdate(order.id, 'cancelled')}
+                        disabled={processingOrder === order.id}
+                        variant="destructive"
+                      >
+                        Reject Order
+                      </Button>
+                    </div>
+                  )}
+
+                  {order.status === 'confirmed' && (
+                    <div className="flex gap-3 mt-6 pt-4 border-t">
+                      <Button
+                        onClick={() => handleOrderStatusUpdate(order.id, 'preparing')}
+                        disabled={processingOrder === order.id}
+                        className="bg-orange-600 hover:bg-orange-700"
+                      >
+                        Start Preparing
+                      </Button>
+                    </div>
+                  )}
+
+                  {order.status === 'preparing' && (
+                    <div className="flex gap-3 mt-6 pt-4 border-t">
+                      <Button
+                        onClick={() => handleOrderStatusUpdate(order.id, 'ready_for_pickup')}
+                        disabled={processingOrder === order.id}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Mark as Ready
+                      </Button>
+                    </div>
+                  )}
+
+                  {order.status === 'ready_for_pickup' && (
+                    <div className="bg-green-50 p-4 rounded-lg mt-6">
+                      <p className="text-green-800 text-sm">
+                        Order is ready for pickup or delivery driver assignment
+                      </p>
+                    </div>
+                  )}
+
+                  {(order.status === 'assigned_to_driver' || order.status === 'picked_up' || order.status === 'in_transit') && (
+                    <div className="bg-blue-50 p-4 rounded-lg mt-6">
+                      <p className="text-blue-800 text-sm">
+                        Order is with delivery driver - Status: {order.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </p>
+                    </div>
+                  )}
+
+                  {order.status === 'delivered' && (
+                    <div className="bg-green-100 p-4 rounded-lg mt-6">
+                      <p className="text-green-800 text-sm font-medium">
+                        ✅ Order delivered successfully
+                      </p>
+                    </div>
+                  )}
+
+                  {order.status === 'cancelled' && (
+                    <div className="bg-red-50 p-4 rounded-lg mt-6">
+                      <p className="text-red-800 text-sm">
+                        ❌ Order was cancelled
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const SettingsContent = () => (
     <div className="space-y-6">
       <div>
@@ -639,6 +889,7 @@ export function MerchantDashboard() {
           <main className="p-6">
             {activeTab === 'dashboard' && <DashboardContent />}
             {activeTab === 'validate' && <ValidateContent />}
+            {activeTab === 'orders' && <OrdersContent />}
             {activeTab === 'customers' && <CustomersContent />}
             {activeTab === 'settings' && <SettingsContent />}
           </main>
