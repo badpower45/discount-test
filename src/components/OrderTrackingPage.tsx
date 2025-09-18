@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { CheckCircle, Clock, Truck, MapPin, Phone, User } from 'lucide-react';
+import { CheckCircle, Clock, Truck, MapPin, Phone, User, RefreshCw } from 'lucide-react';
 import { trackOrder } from '../lib/database-functions';
 import type { Order, DeliveryDriver } from '../lib/database-functions';
+import { MainLayout } from './MainLayout';
+import { supabase } from '../lib/supabase';
 
 const statusLabels = {
   'pending_restaurant_acceptance': 'في انتظار موافقة المطعم',
@@ -40,6 +42,7 @@ export function OrderTrackingPage() {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
     const loadOrderData = async () => {
@@ -54,11 +57,11 @@ export function OrderTrackingPage() {
         
         if (result.success && result.order) {
           // جلب بيانات السائق إذا كان معين للطلب
-          let driverData = null;
+          let driverData: DeliveryDriver | null = null;
           if (result.order.delivery_driver_id) {
             const { getDriverById } = await import('../lib/database-functions');
             const driverResult = await getDriverById(result.order.delivery_driver_id);
-            if (driverResult.success) {
+            if (driverResult.success && driverResult.driver) {
               driverData = driverResult.driver;
             }
           }
@@ -80,40 +83,67 @@ export function OrderTrackingPage() {
 
     loadOrderData();
 
-    // تحديث البيانات كل 30 ثانية
-    const interval = setInterval(loadOrderData, 30000);
-    return () => clearInterval(interval);
+    // اشتراك في التحديثات الفورية من Supabase
+    const channel = supabase
+      .channel(`order_${orderNumber}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `order_number=eq.${orderNumber}`
+        },
+        () => {
+          console.log('🔄 Order status updated, refreshing data...');
+          loadOrderData();
+          setLastUpdated(new Date());
+        }
+      )
+      .subscribe();
+
+    // تحديث احتياطي كل دقيقتين فقط
+    const interval = setInterval(loadOrderData, 120000);
+    
+    return () => {
+      clearInterval(interval);
+      channel.unsubscribe();
+    };
   }, [orderNumber]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري تحميل بيانات الطلب...</p>
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">جاري تحميل بيانات الطلب...</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (error || !orderData.order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Clock className="w-8 h-8 text-red-600" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              خطأ في تحميل الطلب
-            </h2>
-            <p className="text-gray-600 mb-6">{error}</p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              العودة للصفحة الرئيسية
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <MainLayout>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-red-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                خطأ في تحميل الطلب
+              </h2>
+              <p className="text-gray-600 mb-6">{error}</p>
+              <Button onClick={() => navigate('/')} className="w-full">
+                العودة للصفحة الرئيسية
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
     );
   }
 
@@ -121,14 +151,28 @@ export function OrderTrackingPage() {
   const currentStepIndex = statusSteps.indexOf(order.status);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
+    <MainLayout>
+      <div className="bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="mb-6">
           <Button variant="outline" onClick={() => navigate('/')} className="mb-4">
             ← العودة للصفحة الرئيسية
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">تتبع الطلب {order.order_number}</h1>
-          <p className="text-gray-600">الحالة الحالية: {statusLabels[order.status as keyof typeof statusLabels]}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">تتبع الطلب {order.order_number}</h1>
+              <p className="text-gray-600">الحالة الحالية: {statusLabels[order.status as keyof typeof statusLabels]}</p>
+            </div>
+            <div className="text-right">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <RefreshCw className="w-4 h-4" />
+                <span>آخر تحديث: {lastUpdated.toLocaleTimeString('ar-EG')}</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                🔄 التحديثات الفورية مفعلة
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -324,6 +368,6 @@ export function OrderTrackingPage() {
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

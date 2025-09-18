@@ -536,7 +536,7 @@ export const getOrdersByStatus = async (
 /**
  * تتبع حالة الطلب
  */
-export const trackOrder = async (orderId: string): Promise<{ success: boolean; order?: Order; error?: string }> => {
+export const trackOrder = async (orderNumber: string): Promise<{ success: boolean; order?: Order; error?: string }> => {
   try {
     const { data, error } = await supabase
       .from('orders')
@@ -546,7 +546,7 @@ export const trackOrder = async (orderId: string): Promise<{ success: boolean; o
         restaurants!inner(name, logo_url),
         delivery_drivers(full_name, phone_number, vehicle_type, current_location)
       `)
-      .eq('id', orderId)
+      .eq('order_number', orderNumber)
       .single();
 
     if (error) {
