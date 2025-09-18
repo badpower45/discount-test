@@ -8,6 +8,8 @@ import { DeliveryDriverDashboard } from './components/DeliveryDriverDashboard';
 import { MerchantDashboard } from './components/MerchantDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LoginPage } from './components/LoginPage';
+import { CustomerLoginPage } from './components/CustomerLoginPage';
+import { CustomerSignupPage } from './components/CustomerSignupPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 // Test components removed for production
 import { Toaster } from './components/ui/toaster';
@@ -193,6 +195,8 @@ export default function App() {
               <Route path="/order/:restaurantId" element={<OrderPage />} />
               <Route path="/track-order/:orderNumber" element={<OrderTrackingPage />} />
               <Route path="/driver-dashboard" element={<DeliveryDriverDashboard />} />
+              <Route path="/customer-login" element={<CustomerLoginPage />} />
+              <Route path="/customer-signup" element={<CustomerSignupPage />} />
               <Route path="/merchant-login" element={<LoginPage />} />
               <Route path="/merchant" element={
                 <ProtectedRoute requireMerchant={true}>

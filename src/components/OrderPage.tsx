@@ -8,6 +8,8 @@ import { ShoppingCart, Plus, Minus, User } from 'lucide-react';
 import { AppContext } from '../App';
 import { createOrder, fetchRestaurantById } from '../lib/database-functions';
 import type { Restaurant } from '../lib/database-functions';
+import { MainLayout } from './MainLayout';
+import { useAuth } from '../contexts/AuthContext';
 
 interface OrderItem {
   name: string;
@@ -19,6 +21,7 @@ export function OrderPage() {
   const { restaurantId } = useParams<{ restaurantId: string }>();
   const navigate = useNavigate();
   const { offers } = useContext(AppContext);
+  const { user } = useAuth();
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -39,6 +42,17 @@ export function OrderPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [placedOrderNumber, setPlacedOrderNumber] = useState<string>('');
+
+  // Auto-fill customer info if user is logged in
+  useEffect(() => {
+    if (user) {
+      setCustomerInfo(prev => ({
+        ...prev,
+        name: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
+        phone: user.user_metadata?.phone || ''
+      }));
+    }
+  }, [user]);
 
   useEffect(() => {
     const loadRestaurant = async () => {
@@ -91,7 +105,7 @@ export function OrderPage() {
   };
 
   const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const discountPercentage = restaurant?.discount_percentage || restaurant?.discount || 0;
+  const discountPercentage = restaurant?.discount_percentage || 0;
   const discountAmount = subtotal * (discountPercentage / 100);
   const afterDiscount = subtotal - discountAmount;
   const deliveryFee = 10.00;
@@ -157,8 +171,9 @@ export function OrderPage() {
 
   if (orderPlaced) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-md mx-auto p-6">
+      <MainLayout>
+        <div className="bg-gray-50 py-8">
+          <div className="max-w-md mx-auto p-6">
           <Card className="text-center">
             <CardContent className="p-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -190,26 +205,30 @@ export function OrderPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   if (!restaurant) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+      <MainLayout>
+        <div className="bg-gray-50 flex items-center justify-center py-20">
+          <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">جاري تحميل بيانات المطعم...</p>
+          </div>
         </div>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="mb-6">
+    <MainLayout>
+      <div className="bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="mb-6">
           <Button variant="outline" onClick={() => navigate('/')} className="mb-4">
             ← Back to Offers
           </Button>
@@ -220,7 +239,7 @@ export function OrderPage() {
               <div className="flex items-center">
                 <div className="relative mr-4">
                   <img 
-                    src={restaurant.image || restaurant.image_url} 
+                    src={restaurant.image_url} 
                     alt={restaurant.restaurant_name || restaurant.name}
                     className="w-20 h-20 rounded-lg object-cover"
                   />
@@ -466,8 +485,9 @@ export function OrderPage() {
               </CardContent>
             </Card>
           </div>
+          </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

@@ -1,0 +1,139 @@
+(Instructions for Replit Developer) - تعليمات لمطور Replit
+Project Name: Discount & Delivery Platform - Phase 2 Integration
+
+To: The Replit Development Team
+
+From: Project Owner
+
+Date: September 18, 2025
+
+Subject: Final Action Plan to Complete and Integrate the Discount & Delivery Platform
+
+1. Project Overview & Current Status
+
+This project is a multi-faceted platform with three core user roles: Customers, Merchants (Restaurants), and Delivery Drivers. The backend is powered entirely by Supabase, and the frontend is built with React/Vite.
+
+The current codebase is in an advanced state. We have successfully built and implemented separate, functional dashboards for the Admin, Merchant, and Delivery Driver. The connection to Supabase is stable, and a real-time data synchronization system is already in place, which is a significant achievement.
+
+The primary goal of this final phase is to integrate these separate components into a single, seamless end-to-end user experience.
+
+2. The Final Goal: The Complete User Journey
+
+The final product must allow a user to perform the following journey without any breaks in logic:
+
+A customer browses restaurants, chooses an offer, and places a delivery order.
+
+The merchant receives the new order in their dashboard, accepts it, and prepares the food.
+
+When the food is ready, the merchant clicks a button to request a driver.
+
+The order appears in the driver's dashboard. A driver accepts the order and delivers it.
+
+The customer can track the order status throughout the process.
+
+3. Detailed Action Plan: Required Tasks
+
+Please execute the following tasks in the specified order.
+
+Phase 1: Global UI and Layout (Creating a "Complete Website" Feel)
+Task 1.1: Create a Global Layout Structure
+
+Action: Create a new main layout component (e.g., src/components/MainLayout.tsx).
+
+Details: This component must include a shared <Header /> and <Footer />. It will wrap all the main pages of the application (like LandingPage, OrderPage, etc.) to ensure a consistent look and feel across the site.
+
+Task 1.2: Implement the Website Header
+
+Action: Create a new Header.tsx component.
+
+Details: The header must be fully responsive and should contain:
+
+The project logo.
+
+Main navigation links (e.g., "Home", "All Restaurants").
+
+A dynamic authentication section:
+
+If the user is not logged in, it shows "Login" and "Sign Up" buttons.
+
+If the user is logged in, it shows a link to their profile and a "Logout" button.
+
+Task 1.3: Implement the Website Footer
+
+Action: Create a new Footer.tsx component.
+
+Details: The footer should appear at the bottom of all main pages and include basic information like "About Us," "Contact Us," social media links, and a copyright notice.
+
+Phase 2: Customer Experience Integration (Highest Priority)
+Task 2.1: Implement Customer Authentication
+
+Action: Create dedicated pages for customer login (CustomerLoginPage.tsx) and sign-up (CustomerSignupPage.tsx).
+
+Details:
+
+Integrate these with Supabase Auth, allowing users to sign up with email/password and Google Sign-In.
+
+Update the AuthContext.tsx to handle customer authentication alongside the existing merchant/driver roles.
+
+Connect these pages to the new buttons in the Header.
+
+Task 2.2: Implement the "Order Now" Flow
+
+Action: Modify the LandingPage.tsx and offer display components.
+
+Details: For each offer, add a new "Order for Delivery" button. When clicked, this should navigate the user to the OrderPage.tsx, passing the selected offer's details.
+
+Task 2.3: Build the Order Placement Page
+
+Action: Develop the OrderPage.tsx component.
+
+Details: This page is critical. It must:
+
+Display a summary of the selected offer.
+
+If the user is logged in, automatically fill in their name and phone number and show a dropdown of their saved addresses.
+
+If the user is a guest, provide fields for them to enter their name, phone, and delivery address.
+
+Upon clicking "Confirm Order", call the createOrder function in the backend.
+
+Task 2.4: Create the createOrder Backend Function
+
+Action: In src/lib/database-functions.ts, create a new async function createOrder.
+
+Details: This function will receive the order details from the frontend and create a new record in the orders table in Supabase with a status of pending_restaurant_acceptance. It should also handle creating a new customer record if one doesn't already exist.
+
+Task 2.5: Activate the Order Tracking Page
+
+Action: Develop the OrderTrackingPage.tsx component.
+
+Details: After a successful order, redirect the user to this page. It should display the live status of their order by fetching data from the orders table and listening for real-time updates.
+
+Phase 3: Merchant Workflow Integration
+Task 3.1: Add Order Management to the Merchant Dashboard
+
+Action: Modify src/components/MerchantDashboard.tsx.
+
+Details:
+
+Add a new "Orders" section/tab.
+
+This section must fetch and display all orders for that specific restaurant from the orders table.
+
+Each new order (with status pending_restaurant_acceptance) must have "Accept" and "Reject" buttons.
+
+Task 3.2: Implement the "Ready for Pickup" Logic
+
+Action: Once an order is accepted, its status should change to preparing. The UI should then display a single button: "Ready for Pickup".
+
+Details: When the merchant clicks this button, it must call a backend function (requestDelivery(orderId)) that updates the order's status in Supabase to ready_for_pickup. This action is the trigger that makes the order appear in the DeliveryDriverDashboard.
+
+4. Final Technical Guidelines
+
+Supabase is the Single Source of Truth: All data must be fetched from and written to Supabase. No mock or hardcoded data is allowed for core features.
+
+Security First: Ensure all new database tables have Row Level Security (RLS) enabled and that all new database functions are secure.
+
+Consult Before Implementing: For any major architectural decision (like a new database table or a complex UI flow), please provide a brief plan or question before starting the coding process.
+
+By completing these tasks, the project will be transformed into a fully integrated, market-ready application.

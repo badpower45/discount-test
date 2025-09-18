@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
+import { MainLayout } from './MainLayout';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
@@ -30,8 +31,7 @@ export function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-
+    <MainLayout>
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-blue-50 to-blue-100 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -171,7 +171,7 @@ export function LandingPage() {
                       className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
-                      Order Now
+                      Order for Delivery
                     </Button>
                   </div>
                 </CardContent>
@@ -180,7 +180,6 @@ export function LandingPage() {
           </div>
         </div>
       </section>
-
-    </div>
+    </MainLayout>
   );
 }
