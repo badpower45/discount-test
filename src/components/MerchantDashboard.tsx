@@ -37,6 +37,7 @@ export function MerchantDashboard() {
     code?: any;
     message: string;
   } | null>(null);
+  const [isUsingCode, setIsUsingCode] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -235,10 +236,11 @@ export function MerchantDashboard() {
   };
 
   const handleUseCode = async () => {
-    if (!validationResult?.code) {
-      toast.error('No code to use');
+    if (!validationResult?.code || isUsingCode) {
       return;
     }
+
+    setIsUsingCode(true);
 
     try {
       // Use real database RPC function to mark coupon as used
@@ -247,7 +249,7 @@ export function MerchantDashboard() {
       if (result.success) {
         toast.success('تم استخدام الكود بنجاح!');
         
-        // Update local state for UI consistency
+        // Update local state for UI consistency (optimistic update)
         const updatedCoupons = realCoupons.map(coupon => 
           coupon.code === validationResult.code.code 
             ? { ...coupon, isUsed: true, usedAt: new Date() }
@@ -255,29 +257,49 @@ export function MerchantDashboard() {
         );
         setRealCoupons(updatedCoupons);
         
-        // Update AppContext
-        markCodeAsUsed(validationResult.code.id);
+        // Update AppContext for global state consistency
+        // Use code as identifier to avoid ID mismatch issues
+        const globalCode = discountCodes.find(c => c.code === validationResult.code.code);
+        if (globalCode) {
+          markCodeAsUsed(globalCode.id);
+        }
         
-        setValidationResult({
-          isValid: false,
-          code: { ...validationResult.code, isUsed: true },
-          message: 'تم استخدام الكود'
-        });
+        // Clear validation result and input field immediately
+        setValidationResult(null);
         setValidateCode('');
+        
+        // Refresh data from database (separate error handling)
+        try {
+          await fetchMerchantCoupons();
+        } catch (refetchError) {
+          console.error('Error refreshing coupons after successful use:', refetchError);
+          // Don't show error to user - the main action succeeded
+        }
       } else {
         toast.error(result.error || 'فشل في استخدام الكود');
       }
     } catch (error) {
       console.error('Error using coupon:', error);
-      // Fallback for development/testing
-      markCodeAsUsed(validationResult.code.id);
-      setValidationResult({
-        isValid: false,
-        code: { ...validationResult.code, isUsed: true },
-        message: 'Code marked as used'
-      });
+      
+      // Fallback for development/testing - update local state optimistically
+      const updatedCoupons = realCoupons.map(coupon => 
+        coupon.code === validationResult.code.code 
+          ? { ...coupon, isUsed: true, usedAt: new Date() }
+          : coupon
+      );
+      setRealCoupons(updatedCoupons);
+      
+      // Update AppContext for global state consistency
+      const globalCode = discountCodes.find(c => c.code === validationResult.code.code);
+      if (globalCode) {
+        markCodeAsUsed(globalCode.id);
+      }
+      
+      setValidationResult(null);
       setValidateCode('');
-      toast.success('Code marked as used (offline mode)');
+      toast.success('تم استخدام الكود (وضع اوفلاين)');
+    } finally {
+      setIsUsingCode(false);
     }
   };
 
@@ -498,8 +520,13 @@ export function MerchantDashboard() {
                     </div>
                   </div>
                   {validationResult.isValid && !validationResult.code?.isUsed && (
-                    <Button onClick={handleUseCode} variant="outline" size="sm">
-                      Mark as Used
+                    <Button 
+                      onClick={handleUseCode} 
+                      variant="outline" 
+                      size="sm"
+                      disabled={isUsingCode}
+                    >
+                      {isUsingCode ? 'جاري التحديث...' : 'استخدام الكود'}
                     </Button>
                   )}
                 </div>
