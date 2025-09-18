@@ -1,0 +1,193 @@
+إلى فريق تطوير Replit: خطة العمل النهائية والشاملة لمشروع منصة الخصومات
+الموضوع: طلب تنفيذ شامل لحل جميع المشاكل المتبقية واستكمال الوظائف في منصة الخصومات والتوصيل، بناءً على تحليل الكود وملاحظات المالك.
+
+1. نظرة عامة على الحالة الحالية:
+المشروع في مراحله النهائية ولكنه يواجه مشاكل حاسمة تمنع استخدامه:
+
+مشكلة جذرية في قاعدة البيانات: الهيكل الحالي لقاعدة البيانات غير صحيح ويسبب فشلاً في إنشاء الطلبات وإدارة المطاعم.
+
+تحكم الأدمن معطل بالكامل: الأدمن لا يمكنه إضافة، تعديل، أو حذف المطاعم، مما يجعل لوحة التحكم عديمة الفائدة.
+
+تجربة مستخدم غير مكتملة: اسم المطعم لا يظهر بشكل صحيح في لوحة تحكم التاجر، وعملية إنشاء الطلب لا تعمل.
+
+2. الهدف النهائي:
+الوصول إلى منتج متكامل 100% وجاهز للنشر، حيث تعمل جميع لوحات التحكم (أدمن، تاجر، سائق) بسلاسة، وتجربة العميل من الطلب إلى التتبع تتم دون أي مشاكل.
+
+3. خطة العمل التفصيلية (يجب تنفيذها بالترتيب)
+المرحلة الأولى: إعادة بناء وإصلاح قاعدة البيانات (الأولوية القصوى)
+هذه هي أهم خطوة ويجب تنفيذها أولاً لأنها تصلح الأساس الذي يعتمد عليه كل شيء آخر.
+
+الإجراء: اذهب إلى قسم SQL Editor في مشروعك على Supabase.
+
+الكود للتنفيذ: انسخ والصق الكود التالي بالكامل ونفذه. هذا الكود سيقوم بحذف الهيكل القديم الخاطئ، وإعادة بناء كل الجداول والصلاحيات بشكل صحيح وآمن.
+
+SQL
+
+-- ========== START: RUN THIS ENTIRE SCRIPT IN SUPABASE SQL EDITOR ==========
+
+-- Step 1: Drop all existing project objects to ensure a clean slate.
+-- This is critical to remove old, conflicting definitions.
+DROP FUNCTION IF EXISTS public.get_my_role();
+DROP TABLE IF EXISTS public.orders CASCADE;
+DROP TABLE IF EXISTS public.coupons CASCADE;
+DROP TABLE IF EXISTS public.merchants CASCADE;
+DROP TABLE IF EXISTS public.delivery_drivers CASCADE;
+DROP TABLE IF EXISTS public.customers CASCADE;
+DROP TABLE IF EXISTS public.restaurants CASCADE;
+
+-- Step 2: Re-create all tables with the correct structure and relationships.
+CREATE TABLE public.restaurants (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    restaurant_name TEXT,
+    offer_name TEXT,
+    image_url TEXT,
+    logo_url TEXT,
+    discount_percentage INTEGER NOT NULL DEFAULT 0,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'restaurant' CHECK (category IN ('restaurant', 'cafe', 'bakery', 'clothing', 'other')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE public.customers (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    phone TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE public.merchants (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
+    restaurant_id UUID REFERENCES public.restaurants(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE, -- Added email for easier linking
+    role TEXT NOT NULL DEFAULT 'merchant' CHECK (role IN ('merchant', 'admin')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE public.delivery_drivers (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    vehicle_type TEXT NOT NULL CHECK (vehicle_type IN ('motorcycle', 'bicycle', 'car', 'scooter')),
+    status TEXT NOT NULL DEFAULT 'offline' CHECK (status IN ('available', 'busy', 'offline')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE public.orders (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    order_number TEXT NOT NULL UNIQUE,
+    customer_id UUID REFERENCES public.customers(id) ON DELETE CASCADE,
+    restaurant_id UUID REFERENCES public.restaurants(id) ON DELETE CASCADE,
+    delivery_driver_id UUID REFERENCES public.delivery_drivers(id) ON DELETE SET NULL,
+    customer_name TEXT NOT NULL,
+    customer_phone TEXT NOT NULL,
+    customer_address TEXT NOT NULL,
+    order_items JSONB NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending_restaurant_acceptance' CHECK (status IN ('pending_restaurant_acceptance', 'confirmed', 'preparing', 'ready_for_pickup', 'assigned_to_driver', 'in_transit', 'delivered', 'cancelled')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Step 3: Create the essential helper function to get a user's role.
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN 'anon'; END IF;
+  RETURN (SELECT role FROM public.merchants WHERE auth_user_id = auth.uid() LIMIT 1);
+END;
+$$;
+
+-- Step 4: Enable RLS and apply correct policies.
+ALTER TABLE public.restaurants ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read on restaurants" ON public.restaurants FOR SELECT USING (true);
+CREATE POLICY "Allow admins to manage restaurants" ON public.restaurants FOR ALL USING (get_my_role() = 'admin');
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow users to create their own orders" ON public.orders FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Allow related users to view their orders" ON public.orders FOR SELECT USING (EXISTS (SELECT 1 FROM public.customers WHERE id = orders.customer_id AND auth_user_id = auth.uid()));
+CREATE POLICY "Allow merchants and admins to manage orders" ON public.orders FOR ALL USING (get_my_role() = 'admin' OR restaurant_id = (SELECT restaurant_id FROM public.merchants WHERE auth_user_id = auth.uid()));
+
+
+ALTER TABLE public.merchants ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow users to view merchant data" ON public.merchants FOR SELECT USING (true);
+
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated users to manage their own customer profile" ON public.customers FOR ALL USING (id = auth.uid());
+
+
+-- Step 5: Add initial sample data.
+INSERT INTO public.restaurants (name, restaurant_name, offer_name, image_url, logo_url, discount_percentage, description, category) VALUES
+('مطعم البيت الشامي', 'البيت الشامي', 'خصم 30% على المشويات', 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5', 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0', 30, 'أشهى المأكولات الشامية الأصيلة', 'restaurant'),
+('كافيه روقان', 'روقان', 'خصم 25% على كل المشروبات', 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb', 'https://images.unsplash.com/photo-1453614512568-c4024d13c247', 25, 'أجواء هادئة ومشروبات مميزة', 'cafe');
+
+-- ========== END: SCRIPT COMPLETE ==========
+المرحلة الثانية: إصلاحات الواجهة الأمامية (Frontend)
+المهمة 2.1: تفعيل التحكم الكامل للأدمن في المطاعم (حذف وتعديل)
+
+الملف المستهدف: src/lib/database-functions.ts
+
+الإجراء: أضف الدوال التالية لإدارة المطاعم.
+
+TypeScript
+
+// Add this function to delete a restaurant
+export const deleteRestaurant = async (restaurantId: string): Promise<{ success: boolean; error?: any }> => {
+  try {
+    const { error } = await supabase.from('restaurants').delete().eq('id', restaurantId);
+    if (error) throw error;
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting restaurant:', err);
+    return { success: false, error: err };
+  }
+};
+
+// Add this function to update a restaurant
+export const updateRestaurant = async (restaurantId: string, restaurantData: Partial<Omit<Restaurant, 'id' | 'created_at'>>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
+  try {
+    const { data, error } = await supabase.from('restaurants').update(restaurantData).eq('id', restaurantId).select().single();
+    if (error) throw error;
+    return { success: true, data: data as Restaurant };
+  } catch (err) {
+    console.error('Error updating restaurant:', err);
+    return { success: false, error: err };
+  }
+};
+الملف المستهدف: src/components/AdminDashboard.tsx
+
+الإجراء: قم بتفعيل أزرار الحذف والتعديل لكل مطعم، مع إضافة نافذة تأكيد للحذف.
+
+المهمة 2.2: إصلاح عرض اسم المطعم في لوحة تحكم التاجر
+
+الملف المستهدف: src/components/MerchantDashboard.tsx
+
+الإجراء: في الشريط الجانبي MerchantSidebarMenu، ابحث عن السطر الذي يعرض اسم التاجر واستبدله ليعرض اسم المطعم.
+
+الكود:
+
+TypeScript
+
+// داخل MerchantSidebarMenu
+// استبدل هذا السطر
+// <p className="text-xs text-gray-600">{merchant.name}</p>
+// بهذا السطر
+<p className="text-xs text-gray-600">{restaurantInfo?.restaurant_name || 'اسم المطعم'}</p>
+المهمة 2.3: إصلاح وظيفة إنشاء الطلبات للعميل
+
+الملف المستهدف: src/components/OrderPage.tsx
+
+الإجراء: تأكد من أن دالة handleSubmitOrder تقوم بإرسال البيانات بالتوافق الكامل مع هيكل جدول orders الجديد الذي تم إنشاؤه في المرحلة الأولى.
+
+الملف المستهدف: src/lib/database-functions.ts
+
+الإجراء: راجع دالة createOrder وتأكد من أنها تتعامل مع جميع الحقول الجديدة بشكل صحيح، خاصة order_number و order_items (JSONB).
+
+بتنفيذ هذه الخطة الشاملة، سيتم حل جميع المشاكل التي ذكرتها والتي تم تحليلها، وسيصبح المشروع متكاملاً وجاهزًا للاستخدام.

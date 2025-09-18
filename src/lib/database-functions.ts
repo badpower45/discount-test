@@ -154,6 +154,32 @@ export const addRestaurant = async (restaurantData: Omit<Restaurant, 'id' | 'cre
   }
 };
 
+// Add this function to delete a restaurant
+export const deleteRestaurant = async (restaurantId: string): Promise<{ success: boolean; error?: any }> => {
+  try {
+    const { error } = await supabase.from('restaurants').delete().eq('id', restaurantId);
+    if (error) throw error;
+    console.log('✅ Successfully deleted restaurant with ID:', restaurantId);
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting restaurant:', err);
+    return { success: false, error: err };
+  }
+};
+
+// Add this function to update a restaurant
+export const updateRestaurant = async (restaurantId: string, restaurantData: Partial<Omit<Restaurant, 'id' | 'created_at'>>): Promise<{ success: boolean; data?: Restaurant; error?: any }> => {
+  try {
+    const { data, error } = await supabase.from('restaurants').update(restaurantData).eq('id', restaurantId).select().single();
+    if (error) throw error;
+    console.log('✅ Successfully updated restaurant:', data);
+    return { success: true, data: data as Restaurant };
+  } catch (err) {
+    console.error('Error updating restaurant:', err);
+    return { success: false, error: err };
+  }
+};
+
 // Coupon generation function
 export const generateCoupon = async (
   customerName: string,

@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { AppContext } from '../App';
-import { fetchDashboardStats } from '../lib/database-functions';
+import { fetchDashboardStats, deleteRestaurant, updateRestaurant, type Restaurant } from '../lib/database-functions';
 import { useAuth } from '../contexts/AuthContext';
 import { AddRestaurantDialog } from './AddRestaurantDialog';
 import { Button } from './ui/button';
@@ -9,6 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Badge } from './ui/badge';
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from './ui/sidebar';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
 import { 
   Home, 
@@ -19,16 +25,20 @@ import {
   ArrowLeft,
   TrendingUp,
   CheckCircle,
-  LogOut
+  LogOut,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { MainLayout } from './MainLayout';
 
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { offers, discountCodes, customers } = useContext(AppContext);
+  const { offers, discountCodes, customers, refreshData } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAddRestaurantDialogOpen, setIsAddRestaurantDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   const [realStats, setRealStats] = useState({
     totalRestaurants: 0,
     totalCustomers: 0,
@@ -67,6 +77,50 @@ export function AdminDashboard() {
         usedCoupons: discountCodes.filter(code => code.isUsed).length,
         unusedCoupons: discountCodes.filter(code => !code.isUsed).length
       });
+    }
+  };
+
+  // Handle restaurant deletion
+  const handleDeleteRestaurant = async (restaurantId: string, restaurantName: string) => {
+    try {
+      const result = await deleteRestaurant(restaurantId);
+      if (result.success) {
+        toast.success(`تم حذف مطعم "${restaurantName}" بنجاح`);
+        refreshData(); // Refresh the data to update UI
+        loadDashboardStats(); // Refresh stats
+      } else {
+        toast.error('فشل في حذف المطعم');
+      }
+    } catch (error) {
+      console.error('Error deleting restaurant:', error);
+      toast.error('حدث خطأ أثناء حذف المطعم');
+    }
+  };
+
+  // Handle restaurant editing
+  const handleEditRestaurant = (restaurant: Restaurant) => {
+    setEditingRestaurant(restaurant);
+    setIsEditDialogOpen(true);
+  };
+
+  // Handle restaurant update
+  const handleUpdateRestaurant = async (restaurantData: Partial<Restaurant>) => {
+    if (!editingRestaurant) return;
+    
+    try {
+      const result = await updateRestaurant(editingRestaurant.id, restaurantData);
+      if (result.success) {
+        toast.success('تم تحديث بيانات المطعم بنجاح');
+        setIsEditDialogOpen(false);
+        setEditingRestaurant(null);
+        refreshData(); // Refresh the data to update UI
+        loadDashboardStats(); // Refresh stats
+      } else {
+        toast.error('فشل في تحديث بيانات المطعم');
+      }
+    } catch (error) {
+      console.error('Error updating restaurant:', error);
+      toast.error('حدث خطأ أثناء تحديث المطعم');
     }
   };
 
@@ -344,7 +398,41 @@ export function AdminDashboard() {
                     <TableCell>{offerCodes.length}</TableCell>
                     <TableCell>{usedCodes}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">Edit</Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditRestaurant(offer)}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          تعديل
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              حذف
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                هل أنت متأكد من رغبتك في حذف مطعم "{offer.name}"؟ هذا الإجراء لا يمكن التراجع عنه.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteRestaurant(offer.id, offer.name)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                حذف
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -564,7 +652,155 @@ export function AdminDashboard() {
         isOpen={isAddRestaurantDialogOpen} 
         onClose={() => setIsAddRestaurantDialogOpen(false)}
       />
+
+      {/* Edit Restaurant Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>تعديل بيانات المطعم</DialogTitle>
+            <DialogDescription>
+              قم بتعديل بيانات المطعم أدناه
+            </DialogDescription>
+          </DialogHeader>
+          {editingRestaurant && (
+            <EditRestaurantForm 
+              restaurant={editingRestaurant}
+              onSubmit={handleUpdateRestaurant}
+              onCancel={() => setIsEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
       </SidebarProvider>
     </MainLayout>
+  );
+}
+
+// Edit Restaurant Form Component
+function EditRestaurantForm({ 
+  restaurant, 
+  onSubmit, 
+  onCancel 
+}: { 
+  restaurant: Restaurant; 
+  onSubmit: (data: Partial<Restaurant>) => void; 
+  onCancel: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: restaurant.name || '',
+    restaurant_name: restaurant.restaurant_name || '',
+    offer_name: restaurant.offer_name || '',
+    image_url: restaurant.image_url || '',
+    logo_url: restaurant.logo_url || '',
+    discount_percentage: restaurant.discount_percentage || 0,
+    description: restaurant.description || '',
+    category: restaurant.category || 'restaurant' as const
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">اسم المطعم</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="restaurant_name">اسم المطعم المحدد</Label>
+          <Input
+            id="restaurant_name"
+            value={formData.restaurant_name}
+            onChange={(e) => setFormData(prev => ({ ...prev, restaurant_name: e.target.value }))}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="offer_name">اسم العرض</Label>
+        <Input
+          id="offer_name"
+          value={formData.offer_name}
+          onChange={(e) => setFormData(prev => ({ ...prev, offer_name: e.target.value }))}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="image_url">رابط الصورة</Label>
+          <Input
+            id="image_url"
+            value={formData.image_url}
+            onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="logo_url">رابط الشعار</Label>
+          <Input
+            id="logo_url"
+            value={formData.logo_url}
+            onChange={(e) => setFormData(prev => ({ ...prev, logo_url: e.target.value }))}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="discount_percentage">نسبة الخصم (%)</Label>
+          <Input
+            id="discount_percentage"
+            type="number"
+            min="0"
+            max="100"
+            value={formData.discount_percentage}
+            onChange={(e) => setFormData(prev => ({ ...prev, discount_percentage: parseInt(e.target.value) || 0 }))}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="category">الفئة</Label>
+          <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value as Restaurant['category'] }))}>
+            <SelectTrigger>
+              <SelectValue placeholder="اختر الفئة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="restaurant">مطعم</SelectItem>
+              <SelectItem value="cafe">مقهى</SelectItem>
+              <SelectItem value="bakery">مخبز</SelectItem>
+              <SelectItem value="clothing">ملابس</SelectItem>
+              <SelectItem value="other">أخرى</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="description">الوصف</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          required
+        />
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          إلغاء
+        </Button>
+        <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+          حفظ التغييرات
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
