@@ -14,6 +14,7 @@ import {
   fetchDeliveryStats
 } from '../lib/database-functions';
 import type { Order, DeliveryDriver } from '../lib/database-functions';
+import { MainLayout } from './MainLayout';
 
 const statusLabels = {
   'pending_restaurant_acceptance': 'انتظار موافقة المطعم',
@@ -158,7 +159,8 @@ export function DeliveryDriverDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <MainLayout showFooter={false} showHeader={false}>
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -397,6 +399,7 @@ export function DeliveryDriverDashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </MainLayout>
   );
 }

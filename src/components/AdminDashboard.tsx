@@ -21,6 +21,7 @@ import {
   CheckCircle,
   LogOut
 } from 'lucide-react';
+import { MainLayout } from './MainLayout';
 
 export function AdminDashboard() {
   const navigate = useNavigate();
@@ -523,7 +524,8 @@ export function AdminDashboard() {
   );
 
   return (
-    <SidebarProvider>
+    <MainLayout showFooter={false} showHeader={false}>
+      <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">
         <AdminSidebarMenu />
         
@@ -562,6 +564,7 @@ export function AdminDashboard() {
         isOpen={isAddRestaurantDialogOpen} 
         onClose={() => setIsAddRestaurantDialogOpen(false)}
       />
-    </SidebarProvider>
+      </SidebarProvider>
+    </MainLayout>
   );
 }

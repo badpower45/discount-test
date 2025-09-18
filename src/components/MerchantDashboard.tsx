@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, getOrdersByStatus, updateOrderStatus, type Restaurant, type Order } from '../lib/database-functions';
 import { useAuth } from '../contexts/AuthContext';
+import { MainLayout } from './MainLayout';
 
 export function MerchantDashboard() {
   const navigate = useNavigate();
@@ -862,7 +863,8 @@ export function MerchantDashboard() {
   );
 
   return (
-    <SidebarProvider>
+    <MainLayout showFooter={false} showHeader={false}>
+      <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">
         <MerchantSidebarMenu />
         
@@ -895,6 +897,7 @@ export function MerchantDashboard() {
           </main>
         </div>
       </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </MainLayout>
   );
 }

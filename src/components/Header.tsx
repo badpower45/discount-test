@@ -33,14 +33,14 @@ export function Header() {
         className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
       >
         <Home className="w-4 h-4" />
-        Home
+        الرئيسية
       </Link>
       <Link
         to="/"
         className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
       >
         <UtensilsCrossed className="w-4 h-4" />
-        All Restaurants
+        كل المطاعم
       </Link>
     </>
   );
@@ -53,25 +53,25 @@ export function Header() {
             <Button variant="ghost" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">
-                {merchant?.name || user.email?.split('@')[0] || 'Account'}
+                {merchant?.name || user.email?.split('@')[0] || '\u0627\u0644\u062d\u0633\u0627\u0628'}
               </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem onClick={() => navigate('/profile')}>
               <User className="w-4 h-4 mr-2" />
-              Profile
+              الملف الشخصي
             </DropdownMenuItem>
             {merchant && (
               <DropdownMenuItem onClick={() => navigate('/merchant')}>
                 <UtensilsCrossed className="w-4 h-4 mr-2" />
-                Merchant Dashboard
+                لوحة التاجر
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
+              تسجيل الخروج
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -85,13 +85,13 @@ export function Header() {
           onClick={() => navigate('/customer-login')}
           className="hidden sm:inline-flex"
         >
-          Login
+          تسجيل الدخول
         </Button>
         <Button
           onClick={() => navigate('/customer-signup')}
           className="bg-blue-600 hover:bg-blue-700"
         >
-          Sign Up
+          إنشاء حساب
         </Button>
       </div>
     );
@@ -126,7 +126,7 @@ export function Header() {
             <SheetTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">
                 <Menu className="w-5 h-5" />
-                <span className="sr-only">Toggle menu</span>
+                <span className="sr-only">\u062a\u0628\u062f\u064a\u0644 \u0627\u0644\u0642\u0627\u0626\u0645\u0629</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] sm:w-[400px]">
@@ -154,19 +154,19 @@ export function Header() {
                     <>
                       <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700">
                         <User className="w-4 h-4" />
-                        {merchant?.name || user.email?.split('@')[0] || 'Account'}
+                        {merchant?.name || user.email?.split('@')[0] || '\u0627\u0644\u062d\u0633\u0627\u0628'}
                       </div>
                       <Button variant="ghost" onClick={() => { navigate('/profile'); setIsOpen(false); }}>
-                        Profile
+                        الملف الشخصي
                       </Button>
                       {merchant && (
                         <Button variant="ghost" onClick={() => { navigate('/merchant'); setIsOpen(false); }}>
-                          Merchant Dashboard
+                          لوحة التاجر
                         </Button>
                       )}
                       <Button variant="ghost" onClick={handleSignOut}>
                         <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
+                        تسجيل الخروج
                       </Button>
                     </>
                   ) : (
@@ -175,13 +175,13 @@ export function Header() {
                         variant="ghost"
                         onClick={() => { navigate('/customer-login'); setIsOpen(false); }}
                       >
-                        Login
+                        تسجيل الدخول
                       </Button>
                       <Button
                         onClick={() => { navigate('/customer-signup'); setIsOpen(false); }}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
-                        Sign Up
+                        إنشاء حساب
                       </Button>
                     </>
                   )}

@@ -18,8 +18,8 @@ export function Footer() {
                 </span>
               </Link>
               <p className="text-gray-600 mb-4 max-w-md">
-                Discover exclusive discounts and enjoy fast delivery from your favorite restaurants and cafes. 
-                Save up to 70% on every order.
+                اكتشف خصومات حصرية واستمتع بالتوصيل السريع من مطاعمك ومقاهيك المفضلة. 
+                وفر حتى 70% على كل طلب.
               </p>
               <div className="flex items-center gap-4">
                 <a
@@ -49,27 +49,27 @@ export function Footer() {
             {/* Quick Links */}
             <div>
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                Quick Links
+                روابط سريعة
               </h3>
               <ul className="space-y-3">
                 <li>
                   <Link to="/" className="text-gray-600 hover:text-blue-600 transition-colors">
-                    Home
+                    الرئيسية
                   </Link>
                 </li>
                 <li>
                   <Link to="/" className="text-gray-600 hover:text-blue-600 transition-colors">
-                    All Restaurants
+                    كل المطاعم
                   </Link>
                 </li>
                 <li>
                   <Link to="/about" className="text-gray-600 hover:text-blue-600 transition-colors">
-                    About Us
+                    من نحن
                   </Link>
                 </li>
                 <li>
                   <Link to="/contact" className="text-gray-600 hover:text-blue-600 transition-colors">
-                    Contact Us
+                    اتصل بنا
                   </Link>
                 </li>
               </ul>
@@ -78,7 +78,7 @@ export function Footer() {
             {/* Contact Info */}
             <div>
               <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">
-                Contact
+                التواصل
               </h3>
               <ul className="space-y-3">
                 <li className="flex items-center gap-2 text-gray-600">
@@ -91,7 +91,7 @@ export function Footer() {
                 </li>
                 <li className="flex items-start gap-2 text-gray-600">
                   <MapPin className="w-4 h-4 mt-0.5" />
-                  <span>Cairo, Egypt</span>
+                  <span>القاهرة، مصر</span>
                 </li>
               </ul>
             </div>
@@ -102,20 +102,20 @@ export function Footer() {
         <div className="py-6 border-t border-gray-200">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-500 text-sm">
-              © {new Date().getFullYear()} DeliveryDeal. All rights reserved.
+              © {new Date().getFullYear()} DeliveryDeal. جميع الحقوق محفوظة.
             </p>
             <div className="flex items-center gap-6">
               <Link
                 to="/privacy"
                 className="text-gray-500 hover:text-blue-600 text-sm transition-colors"
               >
-                Privacy Policy
+                سياسة الخصوصية
               </Link>
               <Link
                 to="/terms"
                 className="text-gray-500 hover:text-blue-600 text-sm transition-colors"
               >
-                Terms of Service
+                شروط الخدمة
               </Link>
             </div>
           </div>
