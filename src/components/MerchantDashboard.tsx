@@ -170,7 +170,12 @@ export function MerchantDashboard() {
     );
   }
 
-  const merchantName = restaurantInfo?.name || restaurantInfo?.restaurant_name || merchant.restaurant_name || merchant.name || 'اسم المطعم';
+  // استخدام اسم المطعم من قاعدة البيانات أولاً، ثم البدائل
+  const merchantName = restaurantInfo?.name || 
+                       (restaurantInfo?.restaurant_name && restaurantInfo.restaurant_name !== restaurantInfo.name ? restaurantInfo.restaurant_name : null) ||
+                       merchant?.restaurant_name || 
+                       merchant?.name || 
+                       'اسم المطعم غير محدد';
   const merchantCodes = realCoupons;
 
   const handleValidateCode = async () => {
@@ -393,12 +398,15 @@ export function MerchantDashboard() {
       <SidebarContent>
         <div className="p-4">
           <div className="flex items-center mb-6">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mr-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center ml-3">
               <Home className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h2 className="text-sm text-gray-900">Merchant Dashboard</h2>
-              <p className="text-xs text-gray-600">{merchantName}</p>
+            <div className="flex-1">
+              <h2 className="text-sm font-medium text-gray-900">لوحة تحكم التاجر</h2>
+              <p className="text-xs text-blue-600 font-semibold mt-1">{merchantName}</p>
+              {restaurantInfo?.offer_name && (
+                <p className="text-xs text-gray-500">العرض: {restaurantInfo.offer_name}</p>
+              )}
             </div>
           </div>
         </div>
@@ -412,7 +420,7 @@ export function MerchantDashboard() {
                   isActive={activeTab === 'dashboard'}
                 >
                   <Home className="w-4 h-4" />
-                  Dashboard
+                  الرئيسية
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -421,7 +429,7 @@ export function MerchantDashboard() {
                   isActive={activeTab === 'validate'}
                 >
                   <Search className="w-4 h-4" />
-                  Validate Codes
+                  التحقق من الكوبونات
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -430,7 +438,7 @@ export function MerchantDashboard() {
                   isActive={activeTab === 'orders'}
                 >
                   <ShoppingCart className="w-4 h-4" />
-                  Current Orders
+                  الطلبات الحالية
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -439,7 +447,7 @@ export function MerchantDashboard() {
                   isActive={activeTab === 'customers'}
                 >
                   <Users className="w-4 h-4" />
-                  Customers
+                  العملاء
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -448,7 +456,7 @@ export function MerchantDashboard() {
                   isActive={activeTab === 'settings'}
                 >
                   <Settings className="w-4 h-4" />
-                  Settings
+                  الإعدادات
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -470,8 +478,11 @@ export function MerchantDashboard() {
   const DashboardContent = () => (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl text-gray-900 mb-2">Dashboard Overview</h1>
-        <p className="text-gray-600">Welcome back to your merchant dashboard</p>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">نظرة عامة على لوحة التحكم</h1>
+        <p className="text-gray-600">مرحباً بك في لوحة تحكم مطعم <span className="font-semibold text-blue-600">{merchantName}</span></p>
+        {restaurantInfo?.offer_name && (
+          <p className="text-sm text-gray-500 mt-1">العرض الحالي: {restaurantInfo.offer_name}</p>
+        )}
       </div>
 
       {/* Stats Cards */}
