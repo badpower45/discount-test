@@ -391,17 +391,16 @@ export const fetchAllCoupons = async () => {
  * إنشاء طلب جديد مع تفاصيل التوصيل
  */
 export const createOrder = async (orderData: {
-  customer_id: string;
   restaurant_id: string;
   coupon_id?: string;
   customer_name: string;
   customer_phone: string;
-  customer_address: string; // تم تصحيح اسم الحقل
-  order_items: { name: string; quantity: number; price: number }[]; // تم تصحيح اسم الحقل
+  customer_address: string;
+  order_items: { name: string; quantity: number; price: number }[];
   subtotal: number;
   tax_amount: number;
-  total_price: number; // تم تصحيح اسم الحقل
-  delivery_fee: number; // تم إضافة هذا الحقل
+  total_price: number;
+  delivery_fee: number;
   delivery_address: {
     address: string;
     city: string;
@@ -411,26 +410,86 @@ export const createOrder = async (orderData: {
     apartment?: string;
     landmark?: string;
   };
-  special_instructions?: string; // تم تصحيح اسم الحقل
-}): Promise<{ success: boolean; order?: Order; error?: string }> => {
+  special_instructions?: string;
+}, customerData?: { name: string; email: string; phone: string; }): Promise<{ success: boolean; order?: Order; error?: string }> => {
   try {
-    const { data, error } = await supabase.rpc('create_delivery_order', {
-      order_data: orderData
-    });
+    let customerId: string;
+    
+    if (customerData) {
+      // Try to find existing customer
+      let { data: customer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', customerData.email)
+        .single();
 
-    if (error) {
-      console.error('Error creating order:', error);
-      return { success: false, error: error.message };
+      if (!customer) {
+        const { data: newCustomer, error: newCustomerError } = await supabase
+          .from('customers')
+          .insert(customerData)
+          .select('id')
+          .single();
+
+        if (newCustomerError) throw new Error(`Error creating customer: ${newCustomerError.message}`);
+        customer = newCustomer;
+      }
+      customerId = customer!.id;
+    } else {
+      // Create anonymous customer record
+      const { data: anonCustomer, error: anonError } = await supabase
+        .from('customers')
+        .insert({
+          name: orderData.customer_name,
+          email: `${Date.now()}@anonymous.com`,
+          phone: orderData.customer_phone
+        })
+        .select('id')
+        .single();
+
+      if (anonError) throw new Error(`Error creating customer: ${anonError.message}`);
+      customerId = anonCustomer!.id;
     }
 
-    if (data && data.length > 0) {
-      return { success: true, order: data[0] };
-    }
+    // Generate order number
+    const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
 
-    return { success: false, error: 'فشل في إنشاء الطلب' };
-  } catch (err) {
+    // Prepare order data with proper mapping
+    const finalOrderData = {
+      order_number: orderNumber,
+      customer_id: customerId,
+      restaurant_id: orderData.restaurant_id,
+      delivery_driver_id: null,
+      coupon_id: orderData.coupon_id || null,
+      customer_name: orderData.customer_name,
+      customer_phone: orderData.customer_phone,
+      customer_address: orderData.customer_address,
+      order_items: orderData.order_items,
+      subtotal: orderData.subtotal,
+      tax_amount: orderData.tax_amount,
+      total_price: orderData.total_price,
+      delivery_fee: orderData.delivery_fee,
+      currency: 'EGP',
+      delivery_address_snapshot: orderData.delivery_address,
+      status: 'pending_restaurant_acceptance' as const,
+      special_instructions: orderData.special_instructions,
+      estimated_delivery_time: null,
+      pickup_time: null,
+      delivered_at: null
+    };
+
+    const { data: newOrder, error: orderError } = await supabase
+      .from('orders')
+      .insert(finalOrderData)
+      .select()
+      .single();
+
+    if (orderError) throw new Error(orderError.message);
+
+    return { success: true, order: newOrder };
+
+  } catch (err: any) {
     console.error('Error in createOrder:', err);
-    return { success: false, error: 'خطأ في إنشاء الطلب' };
+    return { success: false, error: err.message };
   }
 };
 
@@ -444,7 +503,7 @@ export const updateOrderStatus = async (
   estimatedDeliveryTime?: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const { data, error } = await supabase.rpc('update_order_status', {
+    const { error } = await supabase.rpc('update_order_status', {
       order_id: orderId,
       new_status: newStatus,
       driver_id: driverId,
@@ -471,7 +530,7 @@ export const assignDriverToOrder = async (
   driverId: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    const { data, error } = await supabase.rpc('assign_driver_to_order', {
+    const { error } = await supabase.rpc('assign_driver_to_order', {
       order_id: orderId,
       driver_id: driverId
     });

@@ -1,0 +1,151 @@
+(Instructions for Replit Developer) - تعليمات للمطور
+الموضوع: خطة عمل نهائية وشاملة لإصلاح وتكامل منصة الخصومات.
+
+مقدمة:
+أهلاً بك في الفريق. أنت تنضم إلى مشروع في مراحله النهائية. تم بناء بنية تحتية قوية، لكن توجد بعض المشاكل الحاسمة التي تمنع النظام من العمل بشكل متكامل. مهمتك هي إصلاح هذه المشاكل واستكمال الوظائف المتبقية.
+
+المرحلة الأولى (الأهم): إصلاح صلاحيات قاعدة البيانات
+الهدف: حل المشاكل الجذرية في لوحة تحكم الأدمن (فشل إضافة وتعديل المطاعم) ومشكلة فشل إنشاء الطلبات من قبل العملاء. السبب الرئيسي هو نقص الصلاحيات في Supabase.
+
+الإجراء: قم بتنفيذ الكود التالي بالكامل وبدون تعديل في SQL Editor داخل مشروعك على Supabase. هذا الكود سيقوم بإنشاء وظيفة get_my_role() الضرورية ويضبط جميع صلاحيات الأمان بشكل صحيح.
+
+SQL
+
+-- ========== START: RUN THIS ENTIRE SCRIPT IN SUPABASE SQL EDITOR ==========
+
+-- Step 1: Create a helper function to securely get the current user's role.
+-- This is essential for the security policies to work correctly.
+CREATE OR REPLACE FUNCTION get_my_role()
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER -- This is crucial
+AS $$
+BEGIN
+  -- If the user is not authenticated, return 'anon'
+  IF auth.uid() IS NULL THEN
+    RETURN 'anon';
+  END IF;
+
+  -- Return the role from the merchants table for the current user
+  RETURN (
+    SELECT role
+    FROM public.merchants
+    WHERE auth_user_id = auth.uid()
+    LIMIT 1
+  );
+END;
+$$;
+
+-- Step 2: Temporarily disable RLS on the restaurants table to avoid errors during changes.
+ALTER TABLE public.restaurants DISABLE ROW LEVEL SECURITY;
+
+-- Step 3: Drop all old, potentially conflicting policies on the restaurants table.
+DROP POLICY IF EXISTS "Public can view restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Admins can insert new restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Admins can update restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Admins can delete restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Allow public read access to restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Allow admins to insert restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Allow admins to update restaurants" ON public.restaurants;
+DROP POLICY IF EXISTS "Allow admins to delete restaurants" ON public.restaurants;
+
+-- Step 4: Create new, correct policies using the helper function.
+-- 4.1: Allow everyone (including visitors) to view restaurants.
+CREATE POLICY "Allow public read access to restaurants"
+ON public.restaurants FOR SELECT USING (true);
+
+-- 4.2: Allow ONLY admins to insert new restaurants.
+CREATE POLICY "Allow admins to insert restaurants"
+ON public.restaurants FOR INSERT WITH CHECK (get_my_role() = 'admin');
+
+-- 4.3: Allow ONLY admins to update existing restaurants.
+CREATE POLICY "Allow admins to update restaurants"
+ON public.restaurants FOR UPDATE USING (get_my_role() = 'admin');
+
+-- 4.4: Allow ONLY admins to delete restaurants.
+CREATE POLICY "Allow admins to delete restaurants"
+ON public.restaurants FOR DELETE USING (get_my_role() = 'admin');
+
+-- Step 5: Re-enable Row Level Security on the table.
+ALTER TABLE public.restaurants ENABLE ROW LEVEL SECURITY;
+
+-- ========== END: SCRIPT COMPLETE ==========
+المرحلة الثانية: إصلاحات منطق التطبيق (Frontend)
+المهمة 2.1: إصلاح وظيفة إنشاء الطلب
+
+الهدف: ضمان نجاح عملية إنشاء الطلب من قبل العميل.
+
+الملف المستهدف: src/lib/database-functions.ts.
+
+الإجراء: قم باستبدال دالة createOrder الحالية بالكامل بالكود المُحسَّن التالي:
+
+TypeScript
+
+export const createOrder = async (orderData: any, customerData: { name: string; email: string; phone: string; }) => {
+  try {
+    let { data: customer } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('email', customerData.email)
+      .single();
+
+    if (!customer) {
+      const { data: newCustomer, error: newCustomerError } = await supabase
+        .from('customers')
+        .insert(customerData)
+        .select('id')
+        .single();
+
+      if (newCustomerError) throw new Error(`Error creating customer: ${newCustomerError.message}`);
+      customer = newCustomer;
+    }
+
+    const finalOrderData = { ...orderData, customer_id: customer!.id };
+
+    const { data: newOrder, error: orderError } = await supabase
+      .from('orders')
+      .insert(finalOrderData)
+      .select()
+      .single();
+
+    if (orderError) throw new Error(orderError.message);
+
+    return { success: true, order: newOrder };
+
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+};
+المهمة 2.2: إصلاح عرض اسم التاجر
+
+الهدف: عرض اسم المطعم الصحيح في لوحة تحكم التاجر.
+
+الملف المستهدف: src/components/MerchantDashboard.tsx.
+
+الإجراء: تأكد من أن merchantName يتم استخدامه في الشريط الجانبي MerchantSidebarMenu بدلاً من أي نص ثابت.
+
+TypeScript
+
+// داخل MerchantSidebarMenu
+<p className="text-xs text-gray-600">{merchantName}</p>
+المرحلة الثالثة: استكمال المهام المتبقية من الخطة
+الهدف: إكمال آخر جزء في دورة عمل التطبيق.
+
+المهمة 3.1: تفعيل قسم إدارة الطلبات في لوحة تحكم التاجر
+
+الملف المستهدف: src/components/MerchantDashboard.tsx.
+
+الإجراء:
+
+أضف قسمًا جديدًا (Tab) باسم "الطلبات" (Orders) في الشريط الجانبي.
+
+هذا القسم يجب أن يجلب ويعرض الطلبات الخاصة بالمطعم من جدول orders.
+
+كل طلب جديد يجب أن يحتوي على زر "قبول الطلب".
+
+عند قبول الطلب، تتغير حالته إلى preparing ويظهر زر جديد "جاهز للتوصيل".
+
+عند الضغط على "جاهز للتوصيل"، تتغير حالة الطلب إلى ready_for_pickup (وهذا سيجعله يظهر تلقائيًا لدى السائق).
+
+الخطوة النهائية: الاختبار
+بعد تنفيذ جميع هذه المهام، قم بإجراء اختبار كامل لرحلة المستخدم: (1) عميل ينشئ طلبًا، (2) تاجر يقبل الطلب ويجهزه، (3) سائق يرى الطلب الجاهز.
