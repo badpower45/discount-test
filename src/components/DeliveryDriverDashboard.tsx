@@ -58,18 +58,33 @@ export function DeliveryDriverDashboard() {
         setDriver(driverData.driver);
       }
 
-      // Note: fetchDeliveryStats returns direct object, not success wrapper  
-      setStats(statsData || { totalDeliveries: 0, todayDeliveries: 0, rating: 0 });
+      // Extract driver-specific stats or use defaults
+      const driverStats = {
+        totalDeliveries: statsData?.totalOrders || driver?.total_deliveries || 0,
+        todayDeliveries: statsData?.completedOrders || 0,
+        rating: driver?.rating || 0
+      };
+      setStats(driverStats);
 
       // تحميل الطلبات المختلفة - functions return arrays directly
-      const [available, active, completed] = await Promise.all([
+      const [available, assignedOrders, pickedUpOrders, inTransitOrders, completed] = await Promise.all([
         getOrdersByStatus('ready_for_pickup'),
-        getOrdersByStatus('assigned_to_driver'),
+        getOrdersByStatus('assigned_to_driver', undefined, driverId),
+        getOrdersByStatus('picked_up', undefined, driverId),
+        getOrdersByStatus('in_transit', undefined, driverId),
         getOrdersByStatus('delivered')
       ]);
 
       setAvailableOrders(Array.isArray(available) ? available : []);
-      setActiveOrders(Array.isArray(active) ? active.filter(order => order.delivery_driver_id === driverId) : []);
+      
+      // Combine all active order statuses for this driver
+      const allActiveOrders = [
+        ...(Array.isArray(assignedOrders) ? assignedOrders : []),
+        ...(Array.isArray(pickedUpOrders) ? pickedUpOrders : []),
+        ...(Array.isArray(inTransitOrders) ? inTransitOrders : [])
+      ];
+      setActiveOrders(allActiveOrders);
+      
       setCompletedOrders(Array.isArray(completed) ? completed.filter(order => order.delivery_driver_id === driverId).slice(0, 10) : []);
       
     } catch (error) {
