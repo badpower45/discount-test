@@ -20,10 +20,10 @@ export function AllRestaurantsPage() {
   // Filter and sort restaurants
   const filteredOffers = offers
     .filter(offer => {
-      const matchesSearch = offer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      const matchesSearch = (offer.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (offer.restaurant_name && offer.restaurant_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
                           (offer.offer_name && offer.offer_name.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesCategory = selectedCategory === 'all' || offer.category === selectedCategory;
+      const matchesCategory = selectedCategory === 'all' || (offer.category && offer.category === selectedCategory);
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
@@ -31,13 +31,16 @@ export function AllRestaurantsPage() {
         case 'discount':
           return b.discount - a.discount;
         case 'date':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          // Null-safe date comparison with fallback to epoch for invalid dates
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return dateB - dateA;
         default:
           return (a.restaurant_name || a.name).localeCompare(b.restaurant_name || b.name, 'ar');
       }
     });
 
-  const categories = Array.from(new Set(offers.map(offer => offer.category)));
+  const categories = Array.from(new Set(offers.map(offer => offer.category).filter(Boolean)));
 
   if (loading) {
     return (
@@ -205,10 +208,10 @@ export function AllRestaurantsPage() {
                     {/* Category Badge */}
                     <div className="flex items-center justify-between mb-4">
                       <Badge variant="outline" className="text-xs">
-                        {offer.category === 'restaurant' ? 'مطعم' :
-                         offer.category === 'cafe' ? 'مقهى' :
-                         offer.category === 'bakery' ? 'مخبز' :
-                         offer.category === 'clothing' ? 'ملابس' : 'أخرى'}
+                        {(offer.category === 'restaurant') ? 'مطعم' :
+                         (offer.category === 'cafe') ? 'مقهى' :
+                         (offer.category === 'bakery') ? 'مخبز' :
+                         (offer.category === 'clothing') ? 'ملابس' : 'أخرى'}
                       </Badge>
                     </div>
                     
