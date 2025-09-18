@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getDriverByAuthId } from '../lib/database-functions';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface MerchantData {
@@ -11,9 +12,22 @@ interface MerchantData {
   role: 'merchant' | 'admin';
 }
 
+interface DriverData {
+  id: string;
+  full_name: string;
+  phone_number: string;
+  email: string;
+  vehicle_type: 'motorcycle' | 'bicycle' | 'car' | 'scooter';
+  status: 'available' | 'busy' | 'offline';
+  rating: number;
+  total_deliveries: number;
+  city: string;
+}
+
 interface AuthContextType {
   user: User | null;
   merchant: MerchantData | null;
+  driver: DriverData | null;
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
@@ -34,6 +48,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [merchant, setMerchant] = useState<MerchantData | null>(null);
+  const [driver, setDriver] = useState<DriverData | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -48,9 +63,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Set loading to false immediately so public pages can render
         setLoading(false);
         
-        // Fetch merchant data in background without blocking UI
+        // Fetch merchant and driver data in background without blocking UI
         if (session?.user) {
           fetchMerchantData(session.user.id);
+          fetchDriverData(session.user.id);
         } else {
           console.log('ℹ️ No active session - user can access public pages');
         }
@@ -67,10 +83,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        // Don't await - let merchant data load in background
+        // Don't await - let merchant and driver data load in background
         fetchMerchantData(session.user.id);
+        fetchDriverData(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setMerchant(null);
+        setDriver(null);
         setIsAdmin(false);
       }
       // No setLoading(false) needed here as it's already false
@@ -130,6 +148,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const fetchDriverData = async (userId: string): Promise<DriverData | null> => {
+    if (!userId) {
+      console.warn("fetchDriverData called with no userId");
+      return null;
+    }
+    
+    try {
+      console.log('🔍 Fetching driver data for user ID:', userId);
+      
+      const result = await getDriverByAuthId(userId);
+
+      if (result.success && result.driver) {
+        console.log('✅ Found driver data:', result.driver);
+        const driverData: DriverData = {
+          id: result.driver.id,
+          full_name: result.driver.full_name,
+          phone_number: result.driver.phone_number,
+          email: result.driver.email,
+          vehicle_type: result.driver.vehicle_type,
+          status: result.driver.status,
+          rating: result.driver.rating,
+          total_deliveries: result.driver.total_deliveries,
+          city: result.driver.city,
+        };
+        setDriver(driverData);
+        return driverData;
+      } else {
+        console.log('ℹ️ No driver record found for this user ID.');
+        setDriver(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Exception in fetchDriverData:', error);
+      setDriver(null);
+      return null;
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     
@@ -138,9 +194,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     if (signInData.user) {
-      // Fetch merchant data immediately after successful sign-in
+      // Fetch merchant and driver data immediately after successful sign-in
       const merchantData = await fetchMerchantData(signInData.user.id);
-      return { error: null, role: merchantData?.role || 'merchant' };
+      const driverData = await fetchDriverData(signInData.user.id);
+      
+      // Return role based on what was found
+      if (merchantData) {
+        return { error: null, role: merchantData.role };
+      } else if (driverData) {
+        return { error: null, role: 'driver' };
+      }
+      
+      return { error: null, role: 'customer' };
     }
 
     return { error: new Error("User not found after sign in"), role: undefined };
@@ -159,6 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Force clear all state
       setUser(null);
       setMerchant(null);
+      setDriver(null);
       setSession(null);
       setIsAdmin(false);
       
@@ -175,6 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     user,
     merchant,
+    driver,
     session,
     loading,
     isAdmin,

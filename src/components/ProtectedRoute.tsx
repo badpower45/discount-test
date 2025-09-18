@@ -9,6 +9,7 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireMerchant?: boolean;
+  requireDriver?: boolean;
   fallbackPath?: string;
 }
 
@@ -16,9 +17,10 @@ export function ProtectedRoute({
   children, 
   requireAdmin = false, 
   requireMerchant = false, 
+  requireDriver = false,
   fallbackPath = '/merchant-login' 
 }: ProtectedRouteProps) {
-  const { user, merchant, isAdmin, loading } = useAuth();
+  const { user, merchant, driver, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
 
   if (loading) {
@@ -148,6 +150,54 @@ export function ProtectedRoute({
             >
               إعادة تسجيل الدخول
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (requireDriver && !driver) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl font-bold text-center text-green-700">
+                صلاحيات سائق مطلوبة
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/')}
+                className="p-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Shield className="w-16 h-16 text-green-400 mx-auto mb-4" />
+            <p className="text-gray-700 mb-4">
+              هذه الصفحة مخصصة لسائقي التوصيل فقط
+            </p>
+            <p className="text-sm text-gray-600 mb-6">
+              المستخدم الحالي: {user?.email}
+            </p>
+            <div className="space-y-2">
+              <Button 
+                onClick={() => navigate('/customer-login')}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                تسجيل الدخول كسائق
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/')}
+                className="w-full"
+              >
+                العودة للصفحة الرئيسية
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

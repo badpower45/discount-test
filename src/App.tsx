@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LandingPage } from './components/LandingPage';
+import { AllRestaurantsPage } from './components/AllRestaurantsPage';
+import { ProfilePage } from './components/ProfilePage';
 import { CustomerDiscountPage } from './components/CustomerDiscountPage';
 import { OrderPage } from './components/OrderPage';
 import { OrderTrackingPage } from './components/OrderTrackingPage';
@@ -191,10 +193,20 @@ export default function App() {
           <div className="min-h-screen bg-white">
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/restaurants" element={<AllRestaurantsPage />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              } />
               <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
               <Route path="/order/:restaurantId" element={<OrderPage />} />
               <Route path="/track-order/:orderNumber" element={<OrderTrackingPage />} />
-              <Route path="/driver-dashboard" element={<DeliveryDriverDashboard />} />
+              <Route path="/driver-dashboard" element={
+                <ProtectedRoute requireDriver={true} fallbackPath="/customer-login">
+                  <DeliveryDriverDashboard />
+                </ProtectedRoute>
+              } />
               <Route path="/customer-login" element={<CustomerLoginPage />} />
               <Route path="/customer-signup" element={<CustomerSignupPage />} />
               <Route path="/merchant-login" element={<LoginPage />} />

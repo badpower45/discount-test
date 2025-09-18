@@ -15,6 +15,7 @@ import {
 } from '../lib/database-functions';
 import type { Order, DeliveryDriver } from '../lib/database-functions';
 import { MainLayout } from './MainLayout';
+import { useAuth } from '../contexts/AuthContext';
 
 const statusLabels = {
   'pending_restaurant_acceptance': 'انتظار موافقة المطعم',
@@ -30,9 +31,10 @@ const statusLabels = {
 
 export function DeliveryDriverDashboard() {
   const navigate = useNavigate();
+  const { driver: currentDriver } = useAuth();
   
-  // Demo driver ID - في التطبيق الحقيقي سيأتي من authentication
-  const driverId = 'c8681d2c-f608-453b-8092-5e80cb5b3e1e';
+  // Get driver ID from authentication
+  const driverId = currentDriver?.id;
   
   const [driver, setDriver] = useState<DeliveryDriver | null>(null);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
@@ -42,13 +44,21 @@ export function DeliveryDriverDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadDashboardData();
-    // تحديث البيانات كل 30 ثانية
-    const interval = setInterval(loadDashboardData, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (driverId) {
+      loadDashboardData();
+      // تحديث البيانات كل 30 ثانية
+      const interval = setInterval(loadDashboardData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [driverId]);
 
   const loadDashboardData = async () => {
+    if (!driverId) {
+      console.error('لا يوجد معرف سائق');
+      setLoading(false);
+      return;
+    }
+
     try {
       const [driverData, statsData] = await Promise.all([
         getDriverById(driverId),
@@ -96,7 +106,7 @@ export function DeliveryDriverDashboard() {
   };
 
   const handleToggleStatus = async () => {
-    if (!driver) return;
+    if (!driver || !driverId) return;
     
     const newStatus = driver.status === 'available' ? 'offline' : 'available';
     const result = await updateDriverStatus(driverId, newStatus);
@@ -107,6 +117,8 @@ export function DeliveryDriverDashboard() {
   };
 
   const handleAcceptOrder = async (orderId: string) => {
+    if (!driverId) return;
+    
     const result = await assignDriverToOrder(orderId, driverId);
     
     if (result.success) {

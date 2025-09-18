@@ -36,7 +36,7 @@ export function Header() {
         الرئيسية
       </Link>
       <Link
-        to="/"
+        to="/restaurants"
         className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
       >
         <UtensilsCrossed className="w-4 h-4" />

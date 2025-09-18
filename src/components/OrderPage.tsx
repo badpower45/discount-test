@@ -10,6 +10,7 @@ import { createOrder, fetchRestaurantById } from '../lib/database-functions';
 import type { Restaurant } from '../lib/database-functions';
 import { MainLayout } from './MainLayout';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface OrderItem {
   name: string;
@@ -114,6 +115,19 @@ export function OrderPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // --- الكود الجديد ---
+    if (!user) {
+      toast.error("يجب تسجيل الدخول أولاً لإتمام الطلب!", {
+        description: "من فضلك قم بتسجيل الدخول أو إنشاء حساب جديد للمتابعة.",
+        action: {
+          label: "تسجيل الدخول",
+          onClick: () => navigate('/customer-login'),
+        },
+      });
+      return; // إيقاف تنفيذ الدالة
+    }
+    // --- نهاية الكود الجديد ---
     
     // التحقق من صحة البيانات
     if (orderItems.length === 0) {

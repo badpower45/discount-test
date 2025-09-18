@@ -630,6 +630,33 @@ export const getOrdersByStatus = async (
 };
 
 /**
+ * جلب طلبات العميل
+ */
+export const getCustomerOrders = async (customerEmail: string): Promise<Order[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        restaurants!inner(name, logo_url, restaurant_name),
+        delivery_drivers(full_name, phone_number, vehicle_type)
+      `)
+      .eq('customer_id', customerEmail) // Using email as customer_id for now
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching customer orders:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Error in getCustomerOrders:', err);
+    return [];
+  }
+};
+
+/**
  * تتبع حالة الطلب
  */
 export const trackOrder = async (orderNumber: string): Promise<{ success: boolean; order?: Order; error?: string }> => {
@@ -809,6 +836,37 @@ export const getDriverById = async (driverId: string): Promise<{ success: boolea
     return { success: false, error: 'السائق غير موجود' };
   } catch (err) {
     console.error('Error in getDriverById:', err);
+    return { success: false, error: 'فشل في جلب بيانات السائق' };
+  }
+};
+
+/**
+ * جلب بيانات السائق بناءً على معرف المستخدم المصادق عليه
+ */
+export const getDriverByAuthId = async (authUserId: string): Promise<{ success: boolean; driver?: DeliveryDriver; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('delivery_drivers')
+      .select('*')
+      .eq('auth_user_id', authUserId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found - not an error, just no driver record for this user
+        return { success: false, error: 'هذا المستخدم ليس سائق توصيل' };
+      }
+      console.error('Error fetching driver by auth ID:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data) {
+      return { success: true, driver: data };
+    }
+
+    return { success: false, error: 'السائق غير موجود' };
+  } catch (err) {
+    console.error('Error in getDriverByAuthId:', err);
     return { success: false, error: 'فشل في جلب بيانات السائق' };
   }
 };
