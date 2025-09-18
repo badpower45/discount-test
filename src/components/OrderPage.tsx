@@ -115,23 +115,43 @@ export function OrderPage() {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation checks
+    // التحقق من صحة البيانات
     if (orderItems.length === 0) {
-      alert('Please add items to your order before submitting.');
+      alert('يرجى إضافة عناصر إلى طلبك قبل التقديم.');
       return;
     }
 
     if (!restaurant) {
-      alert('Restaurant information is missing. Please try again.');
+      alert('معلومات المطعم مفقودة. يرجى المحاولة مرة أخرى.');
+      return;
+    }
+
+    // التحقق من صحة بيانات العميل المطلوبة
+    if (!customerInfo.name.trim()) {
+      alert('يرجى إدخال الاسم');
+      return;
+    }
+
+    if (!customerInfo.phone.trim()) {
+      alert('يرجى إدخال رقم الهاتف');
+      return;
+    }
+
+    if (!customerInfo.address.trim()) {
+      alert('يرجى إدخال عنوان التوصيل');
+      return;
+    }
+
+    if (!customerInfo.city.trim()) {
+      alert('يرجى إدخال المدينة');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-
+      // إعداد بيانات الطلب بالتنسيق الصحيح
       const orderData = {
-        customer_id: `temp_${Date.now()}`, // Temporary ID, will be handled by RPC
         restaurant_id: restaurant.id,
         customer_name: customerInfo.name,
         customer_phone: customerInfo.phone,
@@ -153,7 +173,14 @@ export function OrderPage() {
         special_instructions: customerInfo.specialInstructions
       };
 
-      const result = await createOrder(orderData);
+      // إعداد بيانات العميل إذا كان مسجل الدخول
+      const customerData = user ? {
+        name: customerInfo.name,
+        email: user.email || `${Date.now()}@temp.com`,
+        phone: customerInfo.phone
+      } : undefined;
+
+      const result = await createOrder(orderData, customerData);
       
       if (result && result.success && result.order) {
         setOrderPlaced(true);
@@ -163,7 +190,21 @@ export function OrderPage() {
       }
     } catch (error) {
       console.error('خطأ في تقديم الطلب:', error);
-      alert('فشل في تقديم الطلب. يرجى المحاولة مرة أخرى.');
+      
+      // إظهار رسالة خطأ أكثر تفصيلاً
+      let errorMessage = 'فشل في تقديم الطلب. يرجى المحاولة مرة أخرى.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('customer')) {
+          errorMessage = 'خطأ في إنشاء بيانات العميل. يرجى التحقق من المعلومات المدخلة.';
+        } else if (error.message.includes('restaurant')) {
+          errorMessage = 'خطأ في بيانات المطعم. يرجى المحاولة مرة أخرى.';
+        } else if (error.message.includes('network') || error.message.includes('connection')) {
+          errorMessage = 'مشكلة في الاتصال. يرجى التحقق من الإنترنت والمحاولة مرة أخرى.';
+        }
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
