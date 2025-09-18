@@ -33,6 +33,57 @@ export interface Coupon {
   used_at?: string;
 }
 
+// نوع بيانات السائق - محدث حسب schema قاعدة البيانات
+export interface DeliveryDriver {
+  id: string;
+  full_name: string; // تم تصحيح اسم الحقل
+  phone_number: string; // تم تصحيح اسم الحقل  
+  email: string;
+  vehicle_type: 'motorcycle' | 'bicycle' | 'car' | 'scooter';
+  status: 'available' | 'busy' | 'offline';
+  rating: number;
+  total_deliveries: number;
+  city: string;
+  current_location?: { lat: number; lng: number };
+  created_at: string;
+  updated_at?: string;
+}
+
+// نوع بيانات الطلب - محدث حسب schema قاعدة البيانات
+export interface Order {
+  id: string;
+  order_number: string;
+  customer_id: string;
+  restaurant_id: string;
+  delivery_driver_id?: string;
+  coupon_id?: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string; // تم إضافة هذا الحقل
+  order_items: { name: string; quantity: number; price: number }[]; // تم تصحيح اسم الحقل
+  subtotal: number;
+  tax_amount: number;
+  total_price: number; // تم تصحيح اسم الحقل
+  delivery_fee: number; // تم إضافة هذا الحقل
+  currency: string;
+  delivery_address_snapshot: {
+    address: string;
+    city: string;
+    area: string;
+    building_number?: string;
+    floor?: string;
+    apartment?: string;
+    landmark?: string;
+  };
+  status: 'pending_restaurant_acceptance' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'assigned_to_driver' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  special_instructions?: string; // تم تصحيح اسم الحقل
+  estimated_delivery_time?: string;
+  pickup_time?: string; // تم إضافة هذا الحقل
+  delivered_at?: string; // تم تصحيح اسم الحقل
+  created_at: string;
+  updated_at?: string;
+}
+
 // Production ready - database only
 
 // Restaurant functions
@@ -295,6 +346,12 @@ export const subscribeToTables = (callback: () => void) => {
       .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'restaurants' }, 
           callback)
+      .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'orders' }, 
+          callback)
+      .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'delivery_drivers' }, 
+          callback)
       .subscribe();
 
     return subscription;
@@ -321,5 +378,399 @@ export const fetchAllCoupons = async () => {
   } catch (err) {
     console.error('Error in fetchAllCoupons:', err);
     return [];
+  }
+};
+
+// =============================================================================
+// دوال نظام التوصيل - Delivery System Functions
+// =============================================================================
+
+// دوال إدارة الطلبات - Order Management Functions
+
+/**
+ * إنشاء طلب جديد مع تفاصيل التوصيل
+ */
+export const createOrder = async (orderData: {
+  customer_id: string;
+  restaurant_id: string;
+  coupon_id?: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string; // تم تصحيح اسم الحقل
+  order_items: { name: string; quantity: number; price: number }[]; // تم تصحيح اسم الحقل
+  subtotal: number;
+  tax_amount: number;
+  total_price: number; // تم تصحيح اسم الحقل
+  delivery_fee: number; // تم إضافة هذا الحقل
+  delivery_address: {
+    address: string;
+    city: string;
+    area: string;
+    building_number?: string;
+    floor?: string;
+    apartment?: string;
+    landmark?: string;
+  };
+  special_instructions?: string; // تم تصحيح اسم الحقل
+}): Promise<{ success: boolean; order?: Order; error?: string }> => {
+  try {
+    const { data, error } = await supabase.rpc('create_delivery_order', {
+      order_data: orderData
+    });
+
+    if (error) {
+      console.error('Error creating order:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data && data.length > 0) {
+      return { success: true, order: data[0] };
+    }
+
+    return { success: false, error: 'فشل في إنشاء الطلب' };
+  } catch (err) {
+    console.error('Error in createOrder:', err);
+    return { success: false, error: 'خطأ في إنشاء الطلب' };
+  }
+};
+
+/**
+ * تحديث حالة الطلب
+ */
+export const updateOrderStatus = async (
+  orderId: string,
+  newStatus: Order['status'],
+  driverId?: string,
+  estimatedDeliveryTime?: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { data, error } = await supabase.rpc('update_order_status', {
+      order_id: orderId,
+      new_status: newStatus,
+      driver_id: driverId,
+      estimated_time: estimatedDeliveryTime
+    });
+
+    if (error) {
+      console.error('Error updating order status:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error in updateOrderStatus:', err);
+    return { success: false, error: 'فشل في تحديث حالة الطلب' };
+  }
+};
+
+/**
+ * تعيين سائق للطلب
+ */
+export const assignDriverToOrder = async (
+  orderId: string,
+  driverId: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { data, error } = await supabase.rpc('assign_driver_to_order', {
+      order_id: orderId,
+      driver_id: driverId
+    });
+
+    if (error) {
+      console.error('Error assigning driver:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error in assignDriverToOrder:', err);
+    return { success: false, error: 'فشل في تعيين السائق' };
+  }
+};
+
+/**
+ * جلب الطلبات حسب الحالة
+ */
+export const getOrdersByStatus = async (
+  status?: Order['status'],
+  restaurantId?: string,
+  driverId?: string
+): Promise<Order[]> => {
+  try {
+    let query = supabase
+      .from('orders')
+      .select(`
+        *,
+        customers!inner(name, phone),
+        restaurants!inner(name),
+        delivery_drivers(full_name, phone_number, vehicle_type)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    if (restaurantId) {
+      query = query.eq('restaurant_id', restaurantId);
+    }
+
+    if (driverId) {
+      query = query.eq('delivery_driver_id', driverId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Error in getOrdersByStatus:', err);
+    return [];
+  }
+};
+
+/**
+ * تتبع حالة الطلب
+ */
+export const trackOrder = async (orderId: string): Promise<{ success: boolean; order?: Order; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        customers!inner(name, phone),
+        restaurants!inner(name, logo_url),
+        delivery_drivers(full_name, phone_number, vehicle_type, current_location)
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      console.error('Error tracking order:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data) {
+      return { success: true, order: data };
+    }
+
+    return { success: false, error: 'الطلب غير موجود' };
+  } catch (err) {
+    console.error('Error in trackOrder:', err);
+    return { success: false, error: 'فشل في تتبع الطلب' };
+  }
+};
+
+// دوال إدارة السائقين - Driver Management Functions
+
+/**
+ * تسجيل سائق توصيل جديد
+ */
+export const registerDeliveryDriver = async (driverData: {
+  full_name: string; // تم تصحيح اسم الحقل
+  phone_number: string; // تم تصحيح اسم الحقل
+  email: string;
+  vehicle_type: DeliveryDriver['vehicle_type'];
+  city: string;
+}): Promise<{ success: boolean; driver?: DeliveryDriver; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('delivery_drivers')
+      .insert([{
+        ...driverData,
+        status: 'offline',
+        rating: 5.0,
+        total_deliveries: 0
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error registering driver:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data) {
+      return { success: true, driver: data };
+    }
+
+    return { success: false, error: 'فشل في تسجيل السائق' };
+  } catch (err) {
+    console.error('Error in registerDeliveryDriver:', err);
+    return { success: false, error: 'خطأ في تسجيل السائق' };
+  }
+};
+
+/**
+ * تحديث موقع السائق
+ */
+export const updateDriverLocation = async (
+  driverId: string,
+  location: { lat: number; lng: number }
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase
+      .from('delivery_drivers')
+      .update({ 
+        current_location: location,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', driverId);
+
+    if (error) {
+      console.error('Error updating driver location:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error in updateDriverLocation:', err);
+    return { success: false, error: 'فشل في تحديث الموقع' };
+  }
+};
+
+/**
+ * تحديث حالة السائق
+ */
+export const updateDriverStatus = async (
+  driverId: string,
+  status: DeliveryDriver['status']
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase
+      .from('delivery_drivers')
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', driverId);
+
+    if (error) {
+      console.error('Error updating driver status:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error in updateDriverStatus:', err);
+    return { success: false, error: 'فشل في تحديث حالة السائق' };
+  }
+};
+
+/**
+ * جلب السائقين المتاحين
+ */
+export const getAvailableDrivers = async (city?: string): Promise<DeliveryDriver[]> => {
+  try {
+    let query = supabase
+      .from('delivery_drivers')
+      .select('*')
+      .eq('status', 'available')
+      .order('rating', { ascending: false });
+
+    if (city) {
+      query = query.eq('city', city);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching available drivers:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Error in getAvailableDrivers:', err);
+    return [];
+  }
+};
+
+/**
+ * جلب سائق بالمعرف
+ */
+export const getDriverById = async (driverId: string): Promise<{ success: boolean; driver?: DeliveryDriver; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('delivery_drivers')
+      .select('*')
+      .eq('id', driverId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching driver:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data) {
+      return { success: true, driver: data };
+    }
+
+    return { success: false, error: 'السائق غير موجود' };
+  } catch (err) {
+    console.error('Error in getDriverById:', err);
+    return { success: false, error: 'فشل في جلب بيانات السائق' };
+  }
+};
+
+// دوال إحصائيات التوصيل - Delivery Statistics Functions
+
+/**
+ * جلب إحصائيات التوصيل الشاملة
+ */
+export const fetchDeliveryStats = async () => {
+  try {
+    // إجمالي الطلبات
+    const { count: totalOrders } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+
+    // الطلبات المكتملة
+    const { count: completedOrders } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'delivered');
+
+    // الطلبات النشطة
+    const { count: activeOrders } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['pending_restaurant_acceptance', 'confirmed', 'preparing', 'ready_for_pickup', 'assigned_to_driver', 'picked_up', 'in_transit']);
+
+    // إجمالي السائقين
+    const { count: totalDrivers } = await supabase
+      .from('delivery_drivers')
+      .select('*', { count: 'exact', head: true });
+
+    // السائقين المتاحين
+    const { count: availableDrivers } = await supabase
+      .from('delivery_drivers')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'available');
+
+    return {
+      totalOrders: totalOrders || 0,
+      completedOrders: completedOrders || 0,
+      activeOrders: activeOrders || 0,
+      cancelledOrders: (totalOrders || 0) - (completedOrders || 0) - (activeOrders || 0),
+      totalDrivers: totalDrivers || 0,
+      availableDrivers: availableDrivers || 0,
+      busyDrivers: (totalDrivers || 0) - (availableDrivers || 0)
+    };
+  } catch (err) {
+    console.error('Error fetching delivery stats:', err);
+    return {
+      totalOrders: 0,
+      completedOrders: 0,
+      activeOrders: 0,
+      cancelledOrders: 0,
+      totalDrivers: 0,
+      availableDrivers: 0,
+      busyDrivers: 0
+    };
   }
 };
