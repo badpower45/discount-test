@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LandingPage } from './components/LandingPage';
 import { CustomerDiscountPage } from './components/CustomerDiscountPage';
+import { OrderPage } from './components/OrderPage';
+import { OrderTrackingPage } from './components/OrderTrackingPage';
+import { DeliveryDriverDashboard } from './components/DeliveryDriverDashboard';
 import { MerchantDashboard } from './components/MerchantDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LoginPage } from './components/LoginPage';
@@ -185,6 +188,9 @@ export default function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
+              <Route path="/order/:restaurantId" element={<OrderPage />} />
+              <Route path="/track-order/:orderNumber" element={<OrderTrackingPage />} />
+              <Route path="/driver-dashboard" element={<DeliveryDriverDashboard />} />
               <Route path="/merchant-login" element={<LoginPage />} />
               <Route path="/merchant" element={
                 <ProtectedRoute requireMerchant={true}>

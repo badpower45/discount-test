@@ -1,0 +1,387 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Truck, MapPin, Clock, Star, Package, CheckCircle } from 'lucide-react';
+import { 
+  getOrdersByStatus,
+  updateDriverStatus,
+  getDriverById,
+  assignDriverToOrder,
+  updateOrderStatus,
+  fetchDeliveryStats
+} from '../lib/database-functions';
+import type { Order, DeliveryDriver } from '../lib/database-functions';
+
+const statusLabels = {
+  'pending_restaurant_acceptance': 'انتظار موافقة المطعم',
+  'confirmed': 'مؤكد',
+  'preparing': 'قيد التحضير',
+  'ready_for_pickup': 'جاهز للاستلام',
+  'assigned_to_driver': 'تم التعيين',
+  'picked_up': 'تم الاستلام',
+  'in_transit': 'في الطريق',
+  'delivered': 'تم التوصيل',
+  'cancelled': 'ملغي'
+};
+
+export function DeliveryDriverDashboard() {
+  const navigate = useNavigate();
+  
+  // Demo driver ID - في التطبيق الحقيقي سيأتي من authentication
+  const driverId = 'c8681d2c-f608-453b-8092-5e80cb5b3e1e';
+  
+  const [driver, setDriver] = useState<DeliveryDriver | null>(null);
+  const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [completedOrders, setCompletedOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState({ totalDeliveries: 0, todayDeliveries: 0, rating: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+    // تحديث البيانات كل 30 ثانية
+    const interval = setInterval(loadDashboardData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      const [driverData, statsData] = await Promise.all([
+        getDriverById(driverId),
+        fetchDeliveryStats()
+      ]);
+
+      if (driverData.success && driverData.driver) {
+        setDriver(driverData.driver);
+      }
+
+      // Note: fetchDeliveryStats returns direct object, not success wrapper  
+      setStats(statsData || { totalDeliveries: 0, todayDeliveries: 0, rating: 0 });
+
+      // تحميل الطلبات المختلفة - functions return arrays directly
+      const [available, active, completed] = await Promise.all([
+        getOrdersByStatus('ready_for_pickup'),
+        getOrdersByStatus('assigned_to_driver'),
+        getOrdersByStatus('delivered')
+      ]);
+
+      setAvailableOrders(Array.isArray(available) ? available : []);
+      setActiveOrders(Array.isArray(active) ? active.filter(order => order.delivery_driver_id === driverId) : []);
+      setCompletedOrders(Array.isArray(completed) ? completed.filter(order => order.delivery_driver_id === driverId).slice(0, 10) : []);
+      
+    } catch (error) {
+      console.error('خطأ في تحميل بيانات لوحة التحكم:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!driver) return;
+    
+    const newStatus = driver.status === 'available' ? 'offline' : 'available';
+    const result = await updateDriverStatus(driverId, newStatus);
+    
+    if (result.success) {
+      setDriver({...driver, status: newStatus});
+    }
+  };
+
+  const handleAcceptOrder = async (orderId: string) => {
+    const result = await assignDriverToOrder(orderId, driverId);
+    
+    if (result.success) {
+      await loadDashboardData();
+    } else {
+      alert('فشل في قبول الطلب: ' + (result.error || 'خطأ غير معروف'));
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+    const result = await updateOrderStatus(orderId, newStatus);
+    
+    if (result.success) {
+      await loadDashboardData();
+    } else {
+      alert('فشل في تحديث حالة الطلب: ' + (result.error || 'خطأ غير معروف'));
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">جاري تحميل لوحة التحكم...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!driver) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <Truck className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              خطأ في تحميل بيانات السائق
+            </h2>
+            <p className="text-gray-600 mb-6">
+              تعذر العثور على بيانات السائق
+            </p>
+            <Button onClick={() => navigate('/')} className="w-full">
+              العودة للصفحة الرئيسية
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">لوحة تحكم السائق</h1>
+              <p className="text-gray-600">مرحباً {driver.full_name}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button
+                variant={driver.status === 'available' ? 'destructive' : 'default'}
+                onClick={handleToggleStatus}
+              >
+                {driver.status === 'available' ? 'الانتقال لغير متاح' : 'الانتقال لمتاح'}
+              </Button>
+              <Badge 
+                variant={driver.status === 'available' ? 'default' : 'secondary'}
+                className="text-sm px-3 py-1"
+              >
+                {driver.status === 'available' ? '🟢 متاح' : 
+                 driver.status === 'busy' ? '🟡 مشغول' : '🔴 غير متاح'}
+              </Badge>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto p-6">
+        {/* إحصائيات سريعة */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <Package className="w-8 h-8 text-blue-600" />
+                <div>
+                  <p className="text-sm text-gray-600">إجمالي التوصيلات</p>
+                  <p className="text-2xl font-bold">{stats.totalDeliveries}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <Clock className="w-8 h-8 text-green-600" />
+                <div>
+                  <p className="text-sm text-gray-600">توصيلات اليوم</p>
+                  <p className="text-2xl font-bold">{stats.todayDeliveries}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <Star className="w-8 h-8 text-yellow-600" />
+                <div>
+                  <p className="text-sm text-gray-600">التقييم</p>
+                  <p className="text-2xl font-bold">{stats.rating}/5</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <Truck className="w-8 h-8 text-purple-600" />
+                <div>
+                  <p className="text-sm text-gray-600">نوع المركبة</p>
+                  <p className="text-lg font-medium">
+                    {driver.vehicle_type === 'motorcycle' ? 'دراجة نارية' :
+                     driver.vehicle_type === 'bicycle' ? 'دراجة هوائية' :
+                     driver.vehicle_type === 'car' ? 'سيارة' : 'دراجة بخارية'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* الطلبات المتاحة */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                الطلبات المتاحة ({availableOrders.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {availableOrders.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">لا توجد طلبات متاحة حالياً</p>
+              ) : (
+                <div className="space-y-4">
+                  {availableOrders.slice(0, 5).map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-medium">طلب {order.order_number}</h4>
+                          <p className="text-sm text-gray-600">{order.customer_name}</p>
+                        </div>
+                        <Badge variant="secondary">
+                          {order.total_price.toFixed(2)} ج.م
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                        <MapPin className="w-4 h-4" />
+                        <span className="truncate">{order.customer_address}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">
+                          {order.order_items.length} صنف
+                        </span>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleAcceptOrder(order.id)}
+                          disabled={driver.status !== 'available'}
+                        >
+                          قبول الطلب
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* الطلبات النشطة */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="w-5 h-5" />
+                طلباتي النشطة ({activeOrders.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {activeOrders.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">لا توجد طلبات نشطة</p>
+              ) : (
+                <div className="space-y-4">
+                  {activeOrders.map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4 bg-blue-50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-medium">طلب {order.order_number}</h4>
+                          <p className="text-sm text-gray-600">{order.customer_name}</p>
+                          <p className="text-sm text-gray-600">{order.customer_phone}</p>
+                        </div>
+                        <Badge>
+                          {statusLabels[order.status as keyof typeof statusLabels]}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                        <MapPin className="w-4 h-4" />
+                        <span className="truncate">{order.customer_address}</span>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        {order.status === 'assigned_to_driver' && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'picked_up')}
+                          >
+                            تأكيد الاستلام
+                          </Button>
+                        )}
+                        {order.status === 'picked_up' && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'in_transit')}
+                          >
+                            في الطريق
+                          </Button>
+                        )}
+                        {order.status === 'in_transit' && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                          >
+                            تم التوصيل
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* آخر التوصيلات */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              آخر التوصيلات
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {completedOrders.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">لا توجد توصيلات مكتملة</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>رقم الطلب</TableHead>
+                    <TableHead>العميل</TableHead>
+                    <TableHead>العنوان</TableHead>
+                    <TableHead>المبلغ</TableHead>
+                    <TableHead>وقت التوصيل</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completedOrders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-mono">{order.order_number}</TableCell>
+                      <TableCell>{order.customer_name}</TableCell>
+                      <TableCell className="max-w-48 truncate">{order.customer_address}</TableCell>
+                      <TableCell>{order.total_price.toFixed(2)} ج.م</TableCell>
+                      <TableCell>
+                        {order.delivered_at ? new Date(order.delivered_at).toLocaleDateString('ar-EG') : 'غير محدد'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
