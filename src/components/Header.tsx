@@ -4,17 +4,11 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Menu, ShoppingCart, User, LogOut, Home, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+// Removed dropdown; we will use a right-side Sheet for account menu on all sizes
 
 export function Header() {
   const navigate = useNavigate();
-  const { user, merchant, signOut } = useAuth();
+  const { user, merchant, isAdmin, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSignOut = async () => {
@@ -46,54 +40,43 @@ export function Header() {
   );
 
   const AuthSection = () => {
-    if (user) {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
-              <User className="w-4 h-4" />
-              <span className="hidden sm:inline">
-                {merchant?.name || user.email?.split('@')[0] || '\u0627\u0644\u062d\u0633\u0627\u0628'}
-              </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={() => navigate('/profile')}>
-              <User className="w-4 h-4 mr-2" />
-              الملف الشخصي
-            </DropdownMenuItem>
-            {merchant && (
-              <DropdownMenuItem onClick={() => navigate('/merchant')}>
-                <UtensilsCrossed className="w-4 h-4 mr-2" />
-                لوحة التاجر
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              تسجيل الخروج
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    }
-
     return (
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/customer-login')}
-          className="hidden sm:inline-flex"
-        >
-          تسجيل الدخول
-        </Button>
-        <Button
-          onClick={() => navigate('/customer-signup')}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          إنشاء حساب
-        </Button>
-      </div>
+      <Sheet>
+        <SheetTrigger asChild>
+          <Button variant="ghost" className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">
+              {user ? (merchant?.name || user.email?.split('@')[0]) : 'الحساب'}
+            </span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="right" className="w-[280px] sm:w-[360px]">
+          <div className="flex flex-col gap-3 mt-6">
+            <div className="px-3 py-2 text-sm text-gray-700">
+              {user ? (merchant?.name || user.email?.split('@')[0]) : 'أهلًا بك'}
+            </div>
+            {user ? (
+              <>
+                <Button variant="ghost" onClick={() => navigate('/profile')}>الملف الشخصي</Button>
+                {merchant && (
+                  <Button variant="ghost" onClick={() => navigate('/merchant')}>لوحة التاجر</Button>
+                )}
+                {isAdmin && (
+                  <Button variant="ghost" onClick={() => navigate('/admin')}>لوحة الإدمن</Button>
+                )}
+                <Button variant="ghost" onClick={handleSignOut} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <LogOut className="w-4 h-4 mr-2" /> تسجيل الخروج
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => navigate('/customer-login')}>تسجيل الدخول</Button>
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/customer-signup')}>إنشاء حساب</Button>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     );
   };
 
@@ -162,6 +145,11 @@ export function Header() {
                       {merchant && (
                         <Button variant="ghost" onClick={() => { navigate('/merchant'); setIsOpen(false); }}>
                           لوحة التاجر
+                        </Button>
+                      )}
+                      {isAdmin && (
+                        <Button variant="ghost" onClick={() => { navigate('/admin'); setIsOpen(false); }}>
+                          لوحة الإدمن
                         </Button>
                       )}
                       <Button variant="ghost" onClick={handleSignOut}>

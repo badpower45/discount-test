@@ -12,7 +12,7 @@ export function MainLayout({ children, showFooter = true, showHeader = true }: M
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {showHeader && <Header />}
-      <main className="flex-1">
+      <main className={`flex-1`}>
         {children}
       </main>
       {showFooter && <Footer />}

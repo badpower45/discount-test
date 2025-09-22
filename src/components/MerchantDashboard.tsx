@@ -25,9 +25,10 @@ import {
   Truck
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, getOrdersByStatus, updateOrderStatus, type Restaurant, type Order } from '../lib/database-functions';
+import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, getOrdersByStatus, updateOrderStatus, autoAssignDriver, type Restaurant, type Order } from '../lib/database-functions';
 import { useAuth } from '../contexts/AuthContext';
 import { MainLayout } from './MainLayout';
+import { supabase } from '../lib/supabase';
 
 export function MerchantDashboard() {
   const navigate = useNavigate();
@@ -46,6 +47,25 @@ export function MerchantDashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [processingOrder, setProcessingOrder] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Simple beep sound
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      o.connect(g);
+      g.connect(ctx.destination);
+      g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime + 0.01);
+      o.start();
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+      o.stop(ctx.currentTime + 0.3);
+    } catch {}
+  };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -71,6 +91,30 @@ export function MerchantDashboard() {
     }
     return () => clearInterval(interval);
   }, [activeTab, merchant]);
+
+  // Realtime: listen for new orders for this merchant and alert with sound
+  useEffect(() => {
+    if (!merchant?.restaurant_id) return;
+    // subscribe to new inserts on orders for this restaurant
+    const channel = supabase
+      ?.channel?.(`orders-merchant-${merchant.restaurant_id}`)
+      ?.on?.('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'orders',
+        filter: `restaurant_id=eq.${merchant.restaurant_id}`
+  }, () => {
+        toast.success('🚨 طلب جديد وصل!');
+        if (soundEnabled) playBeep();
+        // refresh orders if on orders tab
+        fetchOrders();
+      })
+      ?.subscribe?.();
+
+    return () => {
+      try { channel?.unsubscribe?.(); } catch {}
+    };
+  }, [merchant?.restaurant_id, soundEnabled]);
 
   const fetchRestaurantInfo = async () => {
     if (!merchant?.restaurant_id) return;
@@ -220,7 +264,7 @@ export function MerchantDashboard() {
         }
       } else {
         // Not this merchant's coupon - check if it exists elsewhere (minimal info)
-        const globalResult = await validateCoupon(validateCode.trim(), '');
+  const globalResult = await validateCoupon(validateCode.trim(), null);
         
         if (globalResult.success && globalResult.coupon) {
           // Valid code but for another restaurant - no customer details
@@ -347,6 +391,17 @@ export function MerchantDashboard() {
       const result = await updateOrderStatus(orderId, newStatus);
       if (result.success) {
         toast.success(`Order ${newStatus} successfully`);
+        // Auto-assign a driver immediately after confirmation
+        if (newStatus === 'confirmed') {
+          const assign = await autoAssignDriver(orderId);
+          if (assign.success) {
+            toast.success('تم تعيين أول سائق متاح للطلب');
+          } else if (assign.message === 'no available drivers') {
+            toast.info('لا يوجد سائقون متاحون الآن');
+          } else {
+            toast.error(assign.error || 'تعذر تعيين سائق تلقائيًا');
+          }
+        }
         await fetchOrders(); // Refresh orders
       } else {
         toast.error(result.error || 'Failed to update order status');
@@ -585,6 +640,7 @@ export function MerchantDashboard() {
             <div className="flex gap-2 mt-1">
               <Input
                 id="code"
+                autoFocus
                 value={validateCode}
                 onChange={(e) => setValidateCode(e.target.value)}
                 placeholder="Enter discount code (e.g., EGY-12345)"
@@ -691,6 +747,14 @@ export function MerchantDashboard() {
           <h1 className="text-2xl text-gray-900 mb-2">Current Orders</h1>
           <p className="text-gray-600">Manage incoming orders for your restaurant</p>
         </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setSoundEnabled((v) => !v)}
+              variant={soundEnabled ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              {soundEnabled ? '🔔 Alerts On' : '🔕 Alerts Off'}
+            </Button>
         <Button
           onClick={fetchOrders}
           disabled={loadingOrders}
@@ -704,6 +768,7 @@ export function MerchantDashboard() {
           )}
           Refresh
         </Button>
+          </div>
       </div>
 
       {loadingOrders ? (

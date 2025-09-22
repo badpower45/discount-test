@@ -214,12 +214,12 @@ export const generateCoupon = async (
 // Coupon validation functions
 export const validateCoupon = async (
   couponCode: string,
-  restaurantId: string
+  restaurantId?: string | null
 ): Promise<{ success: boolean; coupon?: any; error?: string }> => {
   try {
     const { data, error } = await supabase.rpc('validate_coupon', {
       coupon_code: couponCode,
-      restaurant_id: restaurantId
+      restaurant_id: restaurantId ?? null
     });
 
     if (error) {
@@ -291,6 +291,17 @@ export const fetchRestaurantCoupons = async (restaurantId: string) => {
 // Customer functions
 export const fetchCustomers = async (): Promise<Customer[]> => {
   try {
+    // Try admin RPC first (will throw if not admin) then fallback to direct select
+    const rpcResult = await supabase
+      .rpc('fetch_all_customers')
+      .order('created_at', { ascending: false } as any);
+
+    if (!rpcResult.error) {
+      console.log('✅ Loaded customers via admin RPC');
+      return rpcResult.data || [];
+    }
+
+    // Fallback to RLS-controlled select
     const { data, error } = await supabase
       .from('customers')
       .select('*')
@@ -312,22 +323,31 @@ export const fetchCustomers = async (): Promise<Customer[]> => {
 // Statistics functions for admin dashboard
 export const fetchDashboardStats = async () => {
   try {
-    // Fetch total restaurants
+    // Try admin RPC first
+    const { data: rpcData, error: rpcError } = await supabase
+      .rpc('fetch_dashboard_stats')
+      .single();
+
+    if (!rpcError && rpcData) {
+      return {
+        totalRestaurants: Number(rpcData.total_restaurants) || 0,
+        totalCustomers: Number(rpcData.total_customers) || 0,
+        totalCoupons: Number(rpcData.total_coupons) || 0,
+        usedCoupons: Number(rpcData.used_coupons) || 0,
+        unusedCoupons: Number(rpcData.unused_coupons) || 0
+      };
+    }
+
+    // Fallback counts under RLS
     const { count: restaurantCount } = await supabase
       .from('restaurants')
       .select('*', { count: 'exact', head: true });
-
-    // Fetch total customers
     const { count: customerCount } = await supabase
       .from('customers')
       .select('*', { count: 'exact', head: true });
-
-    // Fetch total coupons
     const { count: couponCount } = await supabase
       .from('coupons')
       .select('*', { count: 'exact', head: true });
-
-    // Fetch used coupons
     const { count: usedCouponCount } = await supabase
       .from('coupons')
       .select('*', { count: 'exact', head: true })
@@ -390,6 +410,15 @@ export const subscribeToTables = (callback: () => void) => {
 // دالة لجلب جميع الكوبونات (ضرورية للوحة تحكم الأدمن)
 export const fetchAllCoupons = async () => {
   try {
+    // Try admin RPC first (will throw if not admin) then fallback to direct select
+    const rpcResult = await supabase
+      .rpc('fetch_all_coupons')
+      .order('created_at', { ascending: false } as any);
+
+    if (!rpcResult.error) {
+      return rpcResult.data || [];
+    }
+
     const { data, error } = await supabase
       .from('coupons')
       .select('*')
@@ -584,6 +613,31 @@ export const assignDriverToOrder = async (
   }
 };
 
+// Auto-assign first available driver to an order (merchant/admin)
+export const autoAssignDriver = async (
+  orderId: string
+): Promise<{ success: boolean; driverId?: string; message?: string; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .rpc('auto_assign_driver', { p_order_id: orderId })
+      .single();
+
+    if (error) {
+      console.error('Error auto-assigning driver:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (data && data.message === 'assigned') {
+      return { success: true, driverId: data.driver_id, message: 'assigned' };
+    }
+
+    return { success: false, message: data?.message || 'no assignment' };
+  } catch (err) {
+    console.error('Error in autoAssignDriver:', err);
+    return { success: false, error: 'فشل في تعيين السائق تلقائيًا' };
+  }
+};
+
 /**
  * جلب الطلبات حسب الحالة
  */
@@ -593,12 +647,13 @@ export const getOrdersByStatus = async (
   driverId?: string
 ): Promise<Order[]> => {
   try {
+    // Use left joins (remove !inner) so orders without joined rows still appear
     let query = supabase
       .from('orders')
       .select(`
         *,
-        customers!inner(name, phone),
-        restaurants!inner(name),
+        customers(name, phone),
+        restaurants(name, restaurant_name, logo_url),
         delivery_drivers(full_name, phone_number, vehicle_type)
       `)
       .order('created_at', { ascending: false });
@@ -619,7 +674,25 @@ export const getOrdersByStatus = async (
 
     if (error) {
       console.error('Error fetching orders:', error);
-      return [];
+      // Fallback: fetch only from orders table without joins (avoids RLS on related tables)
+      try {
+        let simple = supabase
+          .from('orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (status) simple = simple.eq('status', status);
+        if (restaurantId) simple = simple.eq('restaurant_id', restaurantId);
+        if (driverId) simple = simple.eq('delivery_driver_id', driverId);
+        const { data: simpleData, error: simpleError } = await simple;
+        if (simpleError) {
+          console.error('Fallback orders query also failed:', simpleError);
+          return [];
+        }
+        return simpleData || [];
+      } catch (e) {
+        console.error('Fallback orders query threw:', e);
+        return [];
+      }
     }
 
     return data || [];
@@ -638,10 +711,11 @@ export const getCustomerOrders = async (customerEmail: string): Promise<Order[]>
       .from('orders')
       .select(`
         *,
+        customers!inner(email,name,phone),
         restaurants!inner(name, logo_url, restaurant_name),
         delivery_drivers(full_name, phone_number, vehicle_type)
       `)
-      .eq('customer_id', customerEmail) // Using email as customer_id for now
+      .eq('customers.email', customerEmail)
       .order('created_at', { ascending: false });
 
     if (error) {

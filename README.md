@@ -5,7 +5,18 @@
 
   ## Running the code
 
-  Run `npm i` to install the dependencies.
+  1) Install dependencies
+  - Run `npm i`
 
-  Run `npm run dev` to start the development server.
+  2) Configure environment
+  - Copy `.env.example` to `.env` and set:
+    - `VITE_SUPABASE_URL`
+    - `VITE_SUPABASE_ANON_KEY`
+
+  3) Initialize database (Supabase SQL editor)
+  - Run `database-setup.sql` (creates tables, RLS, and RPCs)
+  - Then run `secure-admin-fix.sql` (policies/admin hardening)
+
+  4) Start the dev server
+  - Run `npm run dev`
   

@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS customers (
     name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     phone TEXT NOT NULL,
+    auth_user_id UUID NULL UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
@@ -121,6 +122,285 @@ ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE merchants ENABLE ROW LEVEL SECURITY;
 
+-- Delivery drivers table
+CREATE TABLE IF NOT EXISTS delivery_drivers (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        full_name TEXT NOT NULL,
+        phone_number TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        vehicle_type TEXT NOT NULL CHECK (vehicle_type IN ('motorcycle','bicycle','car','scooter')),
+        status TEXT NOT NULL DEFAULT 'offline' CHECK (status IN ('available','busy','offline')),
+        rating NUMERIC NOT NULL DEFAULT 5.0,
+        total_deliveries INTEGER NOT NULL DEFAULT 0,
+        city TEXT NOT NULL,
+        current_location JSONB,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Orders table
+CREATE TABLE IF NOT EXISTS orders (
+        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+        order_number TEXT NOT NULL UNIQUE,
+        customer_id UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+        restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+        delivery_driver_id UUID NULL REFERENCES delivery_drivers(id) ON DELETE SET NULL,
+        coupon_id UUID NULL REFERENCES coupons(id) ON DELETE SET NULL,
+        customer_name TEXT NOT NULL,
+        customer_phone TEXT NOT NULL,
+        customer_address TEXT NOT NULL,
+        order_items JSONB NOT NULL,
+        subtotal NUMERIC NOT NULL,
+        tax_amount NUMERIC NOT NULL,
+        total_price NUMERIC NOT NULL,
+        delivery_fee NUMERIC NOT NULL,
+        currency TEXT DEFAULT 'USD',
+        delivery_address_snapshot JSONB NOT NULL,
+        status TEXT NOT NULL CHECK (status IN (
+            'pending_restaurant_acceptance','confirmed','preparing','ready_for_pickup','assigned_to_driver','picked_up','in_transit','delivered','cancelled'
+        )),
+        special_instructions TEXT,
+        estimated_delivery_time TEXT,
+        pickup_time TEXT,
+        delivered_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_orders_restaurant_id ON orders(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_driver_id ON orders(delivery_driver_id);
+
+-- RLS for new tables
+ALTER TABLE delivery_drivers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+-- Ensure customers.auth_user_id column exists when table pre-exists
+ALTER TABLE IF EXISTS customers ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE;
+
+-- For simplicity: allow public select on delivery_drivers and orders (adjust later per roles)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='delivery_drivers' AND policyname='Public can view delivery drivers') THEN
+        DROP POLICY "Public can view delivery drivers" ON delivery_drivers;
+    END IF;
+    CREATE POLICY "Public can view delivery drivers" ON delivery_drivers FOR SELECT USING (true);
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='orders' AND policyname='Public can view orders') THEN
+        DROP POLICY "Public can view orders" ON orders;
+    END IF;
+    CREATE POLICY "Public can view orders" ON orders FOR SELECT USING (true);
+END $$;
+
+-- Minimal RPCs for order workflow
+CREATE OR REPLACE FUNCTION update_order_status(
+    order_id UUID,
+    new_status TEXT,
+    driver_id UUID DEFAULT NULL,
+    estimated_time TEXT DEFAULT NULL
+)
+RETURNS VOID
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE orders
+    SET status = new_status,
+            delivery_driver_id = COALESCE(driver_id, delivery_driver_id),
+            estimated_delivery_time = estimated_time,
+            updated_at = now()
+    WHERE id = order_id;
+END;
+$$;
+
+-- =====================================================================
+-- Admin-only RPCs to fetch all data bypassing RLS safely
+-- Each function checks that the current auth user is an admin via merchants
+-- =====================================================================
+
+-- Helper: ensure admin check via merchants table
+CREATE OR REPLACE FUNCTION is_current_user_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM merchants m
+        WHERE m.auth_user_id = auth.uid() AND m.role = 'admin'
+    );
+$$;
+
+-- =====================================================================
+-- Auto-assign driver to order (merchant/admin only)
+-- Picks the first available driver and assigns to the order, advances status
+-- =====================================================================
+CREATE OR REPLACE FUNCTION auto_assign_driver(p_order_id UUID)
+RETURNS TABLE (
+    order_id UUID,
+    driver_id UUID,
+    message TEXT
+)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_restaurant_id UUID;
+    v_driver_id UUID;
+    v_is_admin BOOLEAN;
+    v_is_merchant BOOLEAN;
+BEGIN
+    -- Get order restaurant
+    SELECT o.restaurant_id INTO v_restaurant_id
+    FROM orders o
+    WHERE o.id = p_order_id;
+
+        IF v_restaurant_id IS NULL THEN
+            RETURN QUERY SELECT p_order_id, NULL::UUID, 'order not found';
+        RETURN;
+    END IF;
+
+    -- Authorization: current user must be admin or merchant of this restaurant
+    SELECT EXISTS (
+        SELECT 1 FROM merchants m
+        WHERE m.auth_user_id = auth.uid() AND m.role = 'admin'
+    ) INTO v_is_admin;
+
+    SELECT EXISTS (
+        SELECT 1 FROM merchants m
+        WHERE m.auth_user_id = auth.uid() AND m.restaurant_id = v_restaurant_id
+    ) INTO v_is_merchant;
+
+    IF NOT (v_is_admin OR v_is_merchant) THEN
+        RAISE EXCEPTION 'not authorized';
+    END IF;
+
+    -- Pick first available driver (simple strategy)
+    SELECT d.id INTO v_driver_id
+    FROM delivery_drivers d
+    WHERE d.status = 'available'
+    ORDER BY d.updated_at NULLS LAST, d.total_deliveries ASC
+    LIMIT 1;
+
+        IF v_driver_id IS NULL THEN
+            RETURN QUERY SELECT p_order_id, NULL::UUID, 'no available drivers';
+        RETURN;
+    END IF;
+
+    -- Assign driver and update states
+    UPDATE orders
+    SET delivery_driver_id = v_driver_id,
+            status = 'assigned_to_driver',
+            updated_at = NOW()
+        WHERE id = p_order_id;
+
+    UPDATE delivery_drivers
+    SET status = 'busy',
+            updated_at = NOW()
+    WHERE id = v_driver_id;
+
+        RETURN QUERY SELECT p_order_id, v_driver_id, 'assigned';
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION auto_assign_driver(UUID) TO authenticated;
+
+-- Fetch all customers (admin only)
+CREATE OR REPLACE FUNCTION fetch_all_customers()
+RETURNS SETOF customers
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT is_current_user_admin() THEN
+        RAISE EXCEPTION 'not authorized';
+    END IF;
+
+    RETURN QUERY
+    SELECT * FROM customers ORDER BY created_at DESC;
+END;
+$$;
+
+-- Fetch all coupons (admin only)
+CREATE OR REPLACE FUNCTION fetch_all_coupons()
+RETURNS SETOF coupons
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT is_current_user_admin() THEN
+        RAISE EXCEPTION 'not authorized';
+    END IF;
+
+    RETURN QUERY
+    SELECT * FROM coupons ORDER BY created_at DESC;
+END;
+$$;
+
+-- Fetch all orders (admin only)
+CREATE OR REPLACE FUNCTION fetch_all_orders()
+RETURNS SETOF orders
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT is_current_user_admin() THEN
+        RAISE EXCEPTION 'not authorized';
+    END IF;
+
+    RETURN QUERY
+    SELECT * FROM orders ORDER BY created_at DESC;
+END;
+$$;
+
+-- Dashboard stats (admin only)
+DROP FUNCTION IF EXISTS fetch_dashboard_stats();
+CREATE OR REPLACE FUNCTION fetch_dashboard_stats()
+RETURNS TABLE (
+    total_restaurants bigint,
+    total_customers bigint,
+    total_coupons bigint,
+    used_coupons bigint,
+    unused_coupons bigint
+)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT is_current_user_admin() THEN
+        RAISE EXCEPTION 'not authorized';
+    END IF;
+
+    RETURN QUERY
+    SELECT
+        (SELECT COUNT(*) FROM restaurants) AS total_restaurants,
+        (SELECT COUNT(*) FROM customers) AS total_customers,
+        (SELECT COUNT(*) FROM coupons) AS total_coupons,
+        (SELECT COUNT(*) FROM coupons WHERE status = 'used') AS used_coupons,
+        (SELECT COUNT(*) FROM coupons WHERE status = 'unused') AS unused_coupons;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION assign_driver_to_order(
+    order_id UUID,
+    driver_id UUID
+)
+RETURNS VOID
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE orders
+    SET delivery_driver_id = driver_id,
+            status = CASE WHEN status IN ('confirmed','preparing','ready_for_pickup') THEN 'assigned_to_driver' ELSE status END,
+            updated_at = now()
+    WHERE id = order_id;
+END;
+$$;
+
 -- RLS Policies for restaurants table
 CREATE POLICY "Public can view restaurants" ON restaurants
     FOR SELECT USING (true);
@@ -145,6 +425,61 @@ CREATE POLICY "Admins can view all merchants" ON merchants
             AND m.role = 'admin'
         )
     );
+
+-- Allow admins to select customers and coupons (RLS remains closed for others)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='customers' AND policyname='Admins can view customers') THEN
+        DROP POLICY "Admins can view customers" ON customers;
+    END IF;
+    CREATE POLICY "Admins can view customers" ON customers
+        FOR SELECT USING (
+            EXISTS (
+                SELECT 1 FROM merchants m
+                WHERE m.auth_user_id = auth.uid() AND m.role = 'admin'
+            )
+        );
+END $$;
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='coupons' AND policyname='Admins can view coupons') THEN
+        DROP POLICY "Admins can view coupons" ON coupons;
+    END IF;
+    CREATE POLICY "Admins can view coupons" ON coupons
+        FOR SELECT USING (
+            EXISTS (
+                SELECT 1 FROM merchants m
+                WHERE m.auth_user_id = auth.uid() AND m.role = 'admin'
+            )
+        );
+END $$;
+
+-- Ensure previous incompatible versions are removed before recreating
+DROP FUNCTION IF EXISTS get_my_merchant_data();
+
+-- RPC to get merchant data for current authenticated user (used by AuthContext)
+CREATE OR REPLACE FUNCTION get_my_merchant_data()
+RETURNS TABLE (
+    id UUID,
+    name TEXT,
+    email TEXT,
+    role TEXT,
+    restaurant_id UUID,
+    restaurant_name TEXT
+)
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql AS $$
+BEGIN
+    RETURN QUERY
+    SELECT m.id, m.name, m.email, m.role, m.restaurant_id, r.restaurant_name
+    FROM merchants m
+    LEFT JOIN restaurants r ON r.id = m.restaurant_id
+    WHERE m.auth_user_id = auth.uid()
+    LIMIT 1;
+END;
+$$;
 
 -- RPC Function: Create or get existing customer
 CREATE OR REPLACE FUNCTION create_or_get_customer(
@@ -328,7 +663,7 @@ END;
 $$;
 
 -- RPC Function: Fetch restaurant coupons
-CREATE OR REPLACE FUNCTION fetchRestaurantCoupons(restaurant_id UUID)
+CREATE OR REPLACE FUNCTION fetch_restaurant_coupons(restaurant_id UUID)
 RETURNS TABLE(
     coupon_id UUID,
     code TEXT,
@@ -355,10 +690,23 @@ BEGIN
         c.used_at
     FROM coupons c
     JOIN customers cust ON c.customer_id = cust.id
-    WHERE c.restaurant_id = fetchRestaurantCoupons.restaurant_id
+    WHERE c.restaurant_id = fetch_restaurant_coupons.restaurant_id
     ORDER BY c.created_at DESC;
 END;
 $$;
+
+-- Backward compatibility: optionally drop old camelCase function if it exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM pg_proc p 
+        JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.proname = 'fetchrestaurantcoupons'
+    ) THEN
+        DROP FUNCTION public.fetchRestaurantCoupons(UUID);
+    END IF;
+END $$;
 
 -- RPC Function: Fetch dashboard statistics
 CREATE OR REPLACE FUNCTION fetchDashboardStats()

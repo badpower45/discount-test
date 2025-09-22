@@ -140,9 +140,9 @@ export function AddRestaurantDialog({ isOpen, onClose }: AddRestaurantDialogProp
             <Input
               id="discount_percentage"
               name="discount_percentage"
-              type="number"
-              min="1"
-              max="100"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={formData.discount_percentage}
               onChange={handleInputChange}
               placeholder="مثال: 20"

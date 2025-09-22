@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Truck, MapPin, Clock, Star, Package, CheckCircle } from 'lucide-react';
 import { 
   getOrdersByStatus,
-  updateDriverStatus,
   getDriverById,
   assignDriverToOrder,
   updateOrderStatus,
@@ -105,16 +104,7 @@ export function DeliveryDriverDashboard() {
     }
   };
 
-  const handleToggleStatus = async () => {
-    if (!driver || !driverId) return;
-    
-    const newStatus = driver.status === 'available' ? 'offline' : 'available';
-    const result = await updateDriverStatus(driverId, newStatus);
-    
-    if (result.success) {
-      setDriver({...driver, status: newStatus});
-    }
-  };
+  // السائق لا يمكنه تغيير حالته من هنا بناءً على طلبك، لذلك أزلنا زر التبديل
 
   const handleAcceptOrder = async (orderId: string) => {
     if (!driverId) return;
@@ -182,12 +172,6 @@ export function DeliveryDriverDashboard() {
               <p className="text-gray-600">مرحباً {driver.full_name}</p>
             </div>
             <div className="flex items-center gap-4">
-              <Button
-                variant={driver.status === 'available' ? 'destructive' : 'default'}
-                onClick={handleToggleStatus}
-              >
-                {driver.status === 'available' ? 'الانتقال لغير متاح' : 'الانتقال لمتاح'}
-              </Button>
               <Badge 
                 variant={driver.status === 'available' ? 'default' : 'secondary'}
                 className="text-sm px-3 py-1"
@@ -195,6 +179,9 @@ export function DeliveryDriverDashboard() {
                 {driver.status === 'available' ? '🟢 متاح' : 
                  driver.status === 'busy' ? '🟡 مشغول' : '🔴 غير متاح'}
               </Badge>
+              <span className="text-xs text-gray-500 hidden sm:inline">
+                ملاحظة: لا يمكن تغيير الحالة من لوحة السائق. يتم ضبطها بواسطة الإدارة أو تلقائيًا.
+              </span>
             </div>
           </div>
         </div>
@@ -203,7 +190,7 @@ export function DeliveryDriverDashboard() {
       <div className="max-w-7xl mx-auto p-6">
         {/* إحصائيات سريعة */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <Package className="w-8 h-8 text-blue-600" />
@@ -215,7 +202,7 @@ export function DeliveryDriverDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <Clock className="w-8 h-8 text-green-600" />
@@ -227,7 +214,7 @@ export function DeliveryDriverDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <Star className="w-8 h-8 text-yellow-600" />
@@ -239,7 +226,7 @@ export function DeliveryDriverDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 shadow-md">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <Truck className="w-8 h-8 text-purple-600" />
@@ -258,7 +245,7 @@ export function DeliveryDriverDashboard() {
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* الطلبات المتاحة */}
-          <Card>
+          <Card className="border border-gray-100 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
@@ -271,7 +258,7 @@ export function DeliveryDriverDashboard() {
               ) : (
                 <div className="space-y-4">
                   {availableOrders.slice(0, 5).map((order) => (
-                    <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <h4 className="font-medium">طلب {order.order_number}</h4>
@@ -285,6 +272,11 @@ export function DeliveryDriverDashboard() {
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                         <MapPin className="w-4 h-4" />
                         <span className="truncate">{order.customer_address}</span>
+                      </div>
+
+                      <div className="text-xs text-gray-500 mb-3">
+                        {order.order_items.slice(0, 3).map((i) => i.name).join('، ')}
+                        {order.order_items.length > 3 ? ` +${order.order_items.length - 3} أخرى` : ''}
                       </div>
                       
                       <div className="flex justify-between items-center">
@@ -307,7 +299,7 @@ export function DeliveryDriverDashboard() {
           </Card>
 
           {/* الطلبات النشطة */}
-          <Card>
+          <Card className="border border-gray-100 shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Truck className="w-5 h-5" />
@@ -335,6 +327,40 @@ export function DeliveryDriverDashboard() {
                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                         <MapPin className="w-4 h-4" />
                         <span className="truncate">{order.customer_address}</span>
+                      </div>
+
+                      {/* شريط تقدّم واضح للحالة */}
+                      <div className="mb-3">
+                        {(() => {
+                          const steps = ['assigned_to_driver','picked_up','in_transit','delivered'] as const;
+                          const labels: Record<string,string> = {
+                            assigned_to_driver: 'تم التعيين',
+                            picked_up: 'تم الاستلام',
+                            in_transit: 'في الطريق',
+                            delivered: 'تم التوصيل'
+                          };
+                          const currentIndex = Math.max(0, steps.indexOf(order.status as any));
+                          return (
+                            <div className="flex items-center justify-between">
+                              {steps.map((s, idx) => (
+                                <div key={s} className="flex-1 flex items-center">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${idx <= currentIndex ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                                    {idx+1}
+                                  </div>
+                                  {idx < steps.length - 1 && (
+                                    <div className={`h-1 flex-1 mx-2 ${idx < currentIndex ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                        <div className="flex justify-between text-xs text-gray-600 mt-2">
+                          <span>تم التعيين</span>
+                          <span>تم الاستلام</span>
+                          <span>في الطريق</span>
+                          <span>تم التوصيل</span>
+                        </div>
                       </div>
                       
                       <div className="flex gap-2">

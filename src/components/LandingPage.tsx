@@ -33,32 +33,59 @@ export function LandingPage() {
   return (
     <MainLayout>
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-50 to-blue-100 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-6xl text-gray-900 mb-6">
-            خصومات حصرية
-          </h1>
-          <p className="text-xl md:text-2xl text-blue-600 mb-8">
-            وفر حتى 70% في مطاعمك ومقاهيك المفضلة
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <div className="flex items-center bg-white rounded-full px-6 py-3 shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mr-3">
-                <UtensilsCrossed className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-gray-700">500+ مطعم</span>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-blue-100" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-900 mb-4">
+              خصومات حصرية على أفضل المطاعم
+            </h1>
+            <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 mb-8">
+              اطلب الآن ووفر حتى 70% مع تجربة سلسة وسريعة للتوصيل
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button 
+                onClick={() => navigate('/restaurants')}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              >
+                استكشف المطاعم
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/merchant-login')}
+              >
+                لأصحاب المطاعم
+              </Button>
             </div>
-            <div className="flex items-center bg-white rounded-full px-6 py-3 shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mr-3">
-                <Coffee className="w-4 h-4 text-white" />
+          </div>
+
+          <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex items-center bg-white/70 backdrop-blur rounded-xl px-5 py-4 shadow-sm border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mr-3">
+                <UtensilsCrossed className="w-5 h-5 text-white" />
               </div>
-              <span className="text-gray-700">200+ مقهى</span>
+              <div>
+                <p className="text-sm text-gray-500">مطاعم ومطابخ متنوعة</p>
+                <p className="text-gray-900 font-medium">+500 مطعم</p>
+              </div>
             </div>
-            <div className="flex items-center bg-white rounded-full px-6 py-3 shadow-sm">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mr-3">
-                <Tag className="w-4 h-4 text-white" />
+            <div className="flex items-center bg-white/70 backdrop-blur rounded-xl px-5 py-4 shadow-sm border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mr-3">
+                <Coffee className="w-5 h-5 text-white" />
               </div>
-              <span className="text-gray-700">عروض يومية</span>
+              <div>
+                <p className="text-sm text-gray-500">قهوة ومشروبات مميزة</p>
+                <p className="text-gray-900 font-medium">+200 مقهى</p>
+              </div>
+            </div>
+            <div className="flex items-center bg-white/70 backdrop-blur rounded-xl px-5 py-4 shadow-sm border border-gray-100">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center mr-3">
+                <Tag className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">عروض يومية محدثة</p>
+                <p className="text-gray-900 font-medium">خصومات حقيقية</p>
+              </div>
             </div>
           </div>
         </div>
@@ -110,16 +137,14 @@ export function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredOffers.map((offer) => (
-              <Card key={offer.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100">
+              <Card key={offer.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-sm">
                 <div className="relative">
                   <img 
                     src={offer.image} 
                     alt={offer.restaurant_name || offer.name}
                     className="w-full h-48 object-cover"
                   />
-                  <Badge 
-                    className="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-red-600 text-white border-0"
-                  >
+                  <Badge className="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow">
                     -{offer.discount}%
                   </Badge>
                   {/* Restaurant Logo */}
@@ -168,7 +193,7 @@ export function LandingPage() {
                     </Button>
                     <Button 
                       onClick={() => handleOrderNow(offer.id)}
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0"
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
                       اطلب للتوصيل
