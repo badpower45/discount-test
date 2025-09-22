@@ -14,7 +14,14 @@ console.log('🔧 Supabase Configuration:', {
 export const supabase = (() => {
   try {
     if (supabaseUrl && supabaseKey) {
-      return createClient(supabaseUrl, supabaseKey);
+      return createClient(supabaseUrl, supabaseKey, {
+        auth: {
+          flowType: 'pkce',
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+        },
+      } as any);
     } else {
       console.warn('❌ Missing Supabase credentials - using mock client')
       // Return comprehensive mock for development

@@ -83,6 +83,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (event === 'SIGNED_IN' && session?.user) {
+        // Ensure a customer profile exists for Google OAuth sign-ins
+        try {
+          await supabase.from('customers').upsert(
+            {
+              id: session.user.id,
+              name: (session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Customer'),
+              email: session.user.email,
+              phone: session.user.user_metadata?.phone || ''
+            },
+            { onConflict: 'id' } as any
+          );
+        } catch (e) {
+          console.warn('Could not upsert customer profile on sign-in:', e);
+        }
         // Don't await - let merchant and driver data load in background
         fetchMerchantData(session.user.id);
         fetchDriverData(session.user.id);
