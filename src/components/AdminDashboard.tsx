@@ -2,6 +2,8 @@ import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { AppContext } from '../App';
 import { fetchDashboardStats, deleteRestaurant, updateRestaurant, type Restaurant } from '../lib/database-functions';
+import { getOrdersByStatus } from '../lib/database-functions';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { AddRestaurantDialog } from './AddRestaurantDialog';
 import { Button } from './ui/button';
@@ -36,6 +38,9 @@ export function AdminDashboard() {
   const { signOut } = useAuth();
   const { offers, discountCodes, customers, refreshData } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [orders, setOrders] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [loadingTab, setLoadingTab] = useState(false);
   const [isAddRestaurantDialogOpen, setIsAddRestaurantDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
@@ -51,6 +56,65 @@ export function AdminDashboard() {
   useEffect(() => {
     loadDashboardStats();
   }, []);
+
+  useEffect(() => {
+    // Load data when switching tabs
+    if (activeTab === 'orders') {
+      void loadAllOrders();
+    } else if (activeTab === 'drivers') {
+      void loadAllDrivers();
+    }
+  }, [activeTab]);
+
+  const adminRpc = async <T,>(fn: () => Promise<T>, fallback: () => Promise<T>): Promise<T> => {
+    try {
+      return await fn();
+    } catch (_) {
+      return await fallback();
+    }
+  };
+
+  const loadAllOrders = async () => {
+    setLoadingTab(true);
+    try {
+      const viaRpc = async () => {
+        const { data, error } = await supabase.rpc('fetch_all_orders');
+        if (error) throw error;
+        return data || [];
+      };
+      const viaFallback = async () => await getOrdersByStatus();
+      const rows = await adminRpc(viaRpc, viaFallback);
+      setOrders(rows);
+    } catch (e) {
+      console.error('Failed to load orders', e);
+      setOrders([]);
+    } finally {
+      setLoadingTab(false);
+    }
+  };
+
+  const loadAllDrivers = async () => {
+    setLoadingTab(true);
+    try {
+      const viaRpc = async () => {
+        const { data, error } = await supabase.rpc('fetch_all_drivers');
+        if (error) throw error;
+        return data || [];
+      };
+      const viaFallback = async () => {
+        const { data, error } = await supabase.from('delivery_drivers').select('*').order('created_at', { ascending: false });
+        if (error) throw error;
+        return data || [];
+      };
+      const rows = await adminRpc(viaRpc, viaFallback);
+      setDrivers(rows);
+    } catch (e) {
+      console.error('Failed to load drivers', e);
+      setDrivers([]);
+    } finally {
+      setLoadingTab(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -190,6 +254,24 @@ export function AdminDashboard() {
                 >
                   <BarChart3 className="w-4 h-4" />
                   Reports
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setActiveTab('orders')}
+                  isActive={activeTab === 'orders'}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Orders
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={() => setActiveTab('drivers')}
+                  isActive={activeTab === 'drivers'}
+                >
+                  <Users className="w-4 h-4" />
+                  Drivers
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -444,6 +526,98 @@ export function AdminDashboard() {
     </div>
   );
 
+  const OrdersContent = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl text-gray-900 mb-2">Orders</h1>
+          <p className="text-gray-600">View all orders across the platform</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>#</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Restaurant</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Driver</TableHead>
+                <TableHead>Created</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.map((o) => (
+                <TableRow key={o.id}>
+                  <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
+                  <TableCell><Badge variant="outline">{o.status}</Badge></TableCell>
+                  <TableCell>{o.restaurants?.restaurant_name || o.restaurants?.name || o.restaurant_id}</TableCell>
+                  <TableCell>{o.customer_name} ({o.customer_phone})</TableCell>
+                  <TableCell>{o.total_price} {o.currency || ''}</TableCell>
+                  <TableCell>{o.delivery_drivers?.full_name || (o.delivery_driver_id ? 'Assigned' : '—')}</TableCell>
+                  <TableCell>{new Date(o.created_at).toLocaleString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {loadingTab && <div className="p-4 text-sm text-gray-500">Loading orders…</div>}
+          {!loadingTab && orders.length === 0 && <div className="p-4 text-sm text-gray-500">No orders yet.</div>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const DriversContent = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl text-gray-900 mb-2">Drivers</h1>
+          <p className="text-gray-600">All delivery drivers</p>
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>City</TableHead>
+                <TableHead>Deliveries</TableHead>
+                <TableHead>Rating</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {drivers.map((d) => (
+                <TableRow key={d.id}>
+                  <TableCell>{d.full_name}</TableCell>
+                  <TableCell>{d.phone_number}</TableCell>
+                  <TableCell>{d.email}</TableCell>
+                  <TableCell className="capitalize">{d.vehicle_type}</TableCell>
+                  <TableCell>
+                    <Badge variant={d.status === 'available' ? 'default' : 'secondary'}>{d.status}</Badge>
+                  </TableCell>
+                  <TableCell>{d.city}</TableCell>
+                  <TableCell>{d.total_deliveries ?? 0}</TableCell>
+                  <TableCell>{d.rating ?? 0}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {loadingTab && <div className="p-4 text-sm text-gray-500">Loading drivers…</div>}
+          {!loadingTab && drivers.length === 0 && <div className="p-4 text-sm text-gray-500">No drivers yet.</div>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
   const CustomersContent = () => (
     <div className="space-y-6">
       <div>
@@ -643,6 +817,8 @@ export function AdminDashboard() {
             {activeTab === 'customers' && <CustomersContent />}
             {activeTab === 'coupons' && <CouponsContent />}
             {activeTab === 'reports' && <ReportsContent />}
+            {activeTab === 'orders' && <OrdersContent />}
+            {activeTab === 'drivers' && <DriversContent />}
           </main>
         </div>
       </div>
