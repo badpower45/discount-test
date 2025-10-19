@@ -4,6 +4,32 @@ This project is a Progressive Web App (PWA) discount and delivery platform desig
 
 ## Recent Changes (October 2025)
 
+### UI/UX Overhaul - Complete Arabic Interface (October 19, 2025)
+- ✅ **New Visual Identity**:
+  - Applied Tajawal Arabic font from Google Fonts (dg ghayaty not available)
+  - Implemented modern color palette with gradients (primary, purple-600)
+  - Updated src/index.css with custom CSS variables for theming
+- ✅ **Redesigned Customer-Facing Pages**:
+  - **AllRestaurantsPage**: Modern Arabic interface with search, filters, and card-based layout
+  - **OrderPage**: Two-column layout (order items + customer form) with modern styling
+  - **OrderTrackingPage**: Horizontal Visual Stepper with 4 main stages (تم الطلب → جاري التحضير → في الطريق → تم التوصيل)
+  - **CustomerLoginPage**: Clean, modern Arabic login with gradient backgrounds
+  - **CustomerSignupPage**: Simple signup form with full Arabic translation
+- ✅ **Visual Stepper Implementation**:
+  - Horizontal progress tracker with animated transitions
+  - Real-time updates via Supabase channels
+  - 4 main status steps with icons and color-coded states
+  - Responsive design for mobile and desktop
+- ✅ **Arabic Language**: All customer-facing content translated to Arabic
+- ✅ **Modern Design Elements**:
+  - Gradient backgrounds and buttons
+  - Large icons and visual hierarchy
+  - Card-based layouts with shadows
+  - Responsive grid systems
+  - Smooth animations and transitions
+
+## Recent Changes (October 2025)
+
 ### Dispatcher System Implementation (October 19, 2025)
 - ✅ **Database Updates**: Added 'dispatcher' role to merchants table
 - ✅ **New RPC Functions**: 
