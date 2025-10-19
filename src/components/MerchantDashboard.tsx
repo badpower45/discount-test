@@ -391,17 +391,8 @@ export function MerchantDashboard() {
       const result = await updateOrderStatus(orderId, newStatus);
       if (result.success) {
         toast.success(`Order ${newStatus} successfully`);
-        // Auto-assign a driver immediately after confirmation
-        if (newStatus === 'confirmed') {
-          const assign = await autoAssignDriver(orderId);
-          if (assign.success) {
-            toast.success('تم تعيين أول سائق متاح للطلب');
-          } else if (assign.message === 'no available drivers') {
-            toast.info('لا يوجد سائقون متاحون الآن');
-          } else {
-            toast.error(assign.error || 'تعذر تعيين سائق تلقائيًا');
-          }
-        }
+        // Note: Removed auto-assign driver - dispatcher will manually assign drivers
+        // This allows for better control and workflow in the dispatch system
         await fetchOrders(); // Refresh orders
       } else {
         toast.error(result.error || 'Failed to update order status');
