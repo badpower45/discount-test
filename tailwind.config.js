@@ -5,7 +5,13 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['Cairo', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        arabic: ['Cairo', 'sans-serif'],
+        english: ['Inter', 'sans-serif'],
+      },
+    },
   },
   plugins: [],
 }
