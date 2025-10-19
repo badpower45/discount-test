@@ -37,12 +37,20 @@ This project is a Progressive Web App (PWA) discount and delivery platform desig
 - ✅ **Fixed critical bug**: Removed authentication gate blocking guest orders in `OrderPage.tsx`
 - ✅ Both authenticated and guest users can now place orders successfully
 - ✅ Guest orders create temporary customer records in database
-- ✅ Full order lifecycle from customer → merchant → dispatcher → driver → delivery working
+- ✅ **Full order lifecycle** (October 19, 2025):
+  1. Customer → places order (pending_restaurant_acceptance)
+  2. Merchant → accepts (confirmed) → prepares (preparing) → marks ready (ready_for_pickup)
+  3. Dispatcher → assigns driver manually (en_route_to_restaurant)
+  4. Driver → updates status through workflow (picked_up → in_transit → delivered)
 
 ### Dashboard Functionality Verified
 - ✅ **Merchant Dashboard**: Orders tab with accept/reject, preparing, and ready-for-pickup buttons
+  - **Updated workflow**: Removed automatic driver assignment - now dispatchers manually assign drivers after merchant marks order as ready
 - ✅ **Dispatcher Dashboard**: Order assignment, driver management, and rating system
+  - Fully functional with fetchReadyOrdersForDispatcher(), fetchAvailableDrivers(), assignOrderToDriverByDispatcher(), and rateDriverByDispatcher()
 - ✅ **Delivery Driver Dashboard**: Shows assigned orders with map integration and detailed status updates
+  - Integrated DeliveryMap component showing restaurant and customer locations
+  - Status update buttons for complete delivery workflow
 - ✅ **Admin Dashboard**: Full restaurant management (add, edit, delete)
 - ✅ **Coupon Management**: Mark as Used button updates database and UI instantly
 
