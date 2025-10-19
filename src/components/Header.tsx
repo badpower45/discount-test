@@ -24,14 +24,14 @@ export function Header() {
     <>
       <Link
         to="/"
-        className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
+        className="flex items-center gap-2 text-foreground/70 hover:text-primary hover:bg-primary/5 px-3 py-2 rounded-lg transition-all font-medium"
       >
         <Home className="w-4 h-4" />
         الرئيسية
       </Link>
       <Link
         to="/restaurants"
-        className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors"
+        className="flex items-center gap-2 text-foreground/70 hover:text-primary hover:bg-primary/5 px-3 py-2 rounded-lg transition-all font-medium"
       >
         <UtensilsCrossed className="w-4 h-4" />
         كل المطاعم
@@ -43,35 +43,51 @@ export function Header() {
     return (
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" className="flex items-center gap-2">
-            <User className="w-4 h-4" />
-            <span className="hidden sm:inline">
+          <Button variant="ghost" className="flex items-center gap-2 hover:bg-primary/5">
+            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+              <User className="w-4 h-4 text-primary" />
+            </div>
+            <span className="hidden sm:inline font-medium">
               {user ? (merchant?.name || user.email?.split('@')[0]) : 'الحساب'}
             </span>
           </Button>
         </SheetTrigger>
         <SheetContent side="right" className="w-[280px] sm:w-[360px]">
           <div className="flex flex-col gap-3 mt-6">
-            <div className="px-3 py-2 text-sm text-gray-700">
-              {user ? (merchant?.name || user.email?.split('@')[0]) : 'أهلًا بك'}
+            <div className="px-4 py-3 bg-primary/5 rounded-xl border border-primary/10">
+              <p className="text-xs text-muted-foreground mb-1">مرحباً</p>
+              <p className="text-sm font-semibold text-foreground">
+                {user ? (merchant?.name || user.email?.split('@')[0]) : 'ضيف'}
+              </p>
             </div>
             {user ? (
               <>
-                <Button variant="ghost" onClick={() => navigate('/profile')}>الملف الشخصي</Button>
+                <Button variant="ghost" onClick={() => navigate('/profile')} className="justify-start">
+                  الملف الشخصي
+                </Button>
                 {merchant && (
-                  <Button variant="ghost" onClick={() => navigate('/merchant')}>لوحة التاجر</Button>
+                  <Button variant="ghost" onClick={() => navigate('/merchant')} className="justify-start">
+                    لوحة التاجر
+                  </Button>
                 )}
                 {isAdmin && (
-                  <Button variant="ghost" onClick={() => navigate('/admin')}>لوحة الإدمن</Button>
+                  <Button variant="ghost" onClick={() => navigate('/admin')} className="justify-start">
+                    لوحة الإدمن
+                  </Button>
                 )}
-                <Button variant="ghost" onClick={handleSignOut} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                <div className="border-t border-border my-2" />
+                <Button variant="ghost" onClick={handleSignOut} className="text-destructive hover:text-destructive hover:bg-destructive/10 justify-start">
                   <LogOut className="w-4 h-4 mr-2" /> تسجيل الخروج
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => navigate('/customer-login')}>تسجيل الدخول</Button>
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => navigate('/customer-signup')}>إنشاء حساب</Button>
+                <Button variant="ghost" onClick={() => navigate('/customer-login')} className="justify-start">
+                  تسجيل الدخول
+                </Button>
+                <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate('/customer-signup')}>
+                  إنشاء حساب
+                </Button>
               </>
             )}
           </div>
@@ -81,15 +97,15 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <ShoppingCart className="w-5 h-5 text-white" />
+          {/* Logo - Modern Design */}
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary via-primary to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+              <ShoppingCart className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold text-gray-900 hidden sm:inline">
+            <span className="text-2xl font-bold bg-gradient-to-l from-primary to-purple-600 bg-clip-text text-transparent hidden sm:inline">
               DeliveryDeal
             </span>
           </Link>
