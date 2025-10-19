@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DeliveryDeal</string>
+    <string name="title_activity_main">DeliveryDeal</string>
+    <string name="package_name">com.deliverydeal.app</string>
+    <string name="custom_url_scheme">com.deliverydeal.app</string>
+</resources>
