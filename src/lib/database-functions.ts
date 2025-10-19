@@ -36,8 +36,8 @@ export interface Coupon {
 // نوع بيانات السائق - محدث حسب schema قاعدة البيانات
 export interface DeliveryDriver {
   id: string;
-  full_name: string; // تم تصحيح اسم الحقل
-  phone_number: string; // تم تصحيح اسم الحقل  
+  full_name: string;
+  phone_number: string;
   email: string;
   vehicle_type: 'motorcycle' | 'bicycle' | 'car' | 'scooter';
   status: 'available' | 'busy' | 'offline';
@@ -45,6 +45,7 @@ export interface DeliveryDriver {
   total_deliveries: number;
   city: string;
   current_location?: { lat: number; lng: number };
+  auth_user_id?: string;
   created_at: string;
   updated_at?: string;
 }
@@ -75,7 +76,8 @@ export interface Order {
     apartment?: string;
     landmark?: string;
   };
-  status: 'pending_restaurant_acceptance' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'assigned_to_driver' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  status: 'pending_restaurant_acceptance' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'en_route_to_restaurant' | 'assigned_to_driver' | 'picked_up' | 'in_transit' | 'delivered' | 'cancelled';
+  customer_location?: { lat: number; lng: number };
   special_instructions?: string; // تم تصحيح اسم الحقل
   estimated_delivery_time?: string;
   pickup_time?: string; // تم إضافة هذا الحقل
@@ -1000,5 +1002,113 @@ export const fetchDeliveryStats = async () => {
       availableDrivers: 0,
       busyDrivers: 0
     };
+  }
+};
+
+// =====================================================================
+// Dispatcher System Functions
+// =====================================================================
+
+export const fetchReadyOrdersForDispatcher = async () => {
+  try {
+    const { data, error } = await supabase.rpc('fetch_ready_orders_for_dispatcher');
+    
+    if (error) {
+      console.error('Error fetching ready orders:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchReadyOrdersForDispatcher:', err);
+    return [];
+  }
+};
+
+export const fetchAvailableDrivers = async () => {
+  try {
+    const { data, error } = await supabase.rpc('fetch_available_drivers');
+    
+    if (error) {
+      console.error('Error fetching available drivers:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchAvailableDrivers:', err);
+    return [];
+  }
+};
+
+export const assignOrderToDriverByDispatcher = async (
+  orderId: string,
+  driverId: string
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  try {
+    const { data, error } = await supabase.rpc('assign_order_to_driver_by_dispatcher', {
+      p_order_id: orderId,
+      p_driver_id: driverId
+    });
+    
+    if (error) {
+      console.error('Error assigning driver:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (data && data.length > 0 && data[0].success) {
+      return { success: true, message: data[0].message };
+    }
+    
+    return { success: false, error: data?.[0]?.message || 'فشل في تعيين السائق' };
+  } catch (err) {
+    console.error('Error in assignOrderToDriverByDispatcher:', err);
+    return { success: false, error: 'فشل في تعيين السائق' };
+  }
+};
+
+export const rateDriverByDispatcher = async (
+  driverId: string,
+  rating: number
+): Promise<{ success: boolean; newRating?: number; message?: string; error?: string }> => {
+  try {
+    const { data, error } = await supabase.rpc('rate_driver_by_dispatcher', {
+      p_driver_id: driverId,
+      p_rating: rating
+    });
+    
+    if (error) {
+      console.error('Error rating driver:', error);
+      return { success: false, error: error.message };
+    }
+    
+    if (data && data.length > 0 && data[0].success) {
+      return { 
+        success: true, 
+        newRating: data[0].new_rating,
+        message: data[0].message 
+      };
+    }
+    
+    return { success: false, error: data?.[0]?.message || 'فشل في تقييم السائق' };
+  } catch (err) {
+    console.error('Error in rateDriverByDispatcher:', err);
+    return { success: false, error: 'فشل في تقييم السائق' };
+  }
+};
+
+export const fetchMyDriverOrders = async () => {
+  try {
+    const { data, error } = await supabase.rpc('fetch_my_driver_orders');
+    
+    if (error) {
+      console.error('Error fetching my driver orders:', error);
+      return [];
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.error('Error in fetchMyDriverOrders:', err);
+    return [];
   }
 };

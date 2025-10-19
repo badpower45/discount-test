@@ -4,6 +4,30 @@ This project is a Progressive Web App (PWA) discount and delivery platform desig
 
 ## Recent Changes (October 2025)
 
+### Dispatcher System Implementation (October 19, 2025)
+- ✅ **Database Updates**: Added 'dispatcher' role to merchants table
+- ✅ **New RPC Functions**: 
+  - `assign_order_to_driver_by_dispatcher()` - Allows dispatchers to assign orders to drivers
+  - `rate_driver_by_dispatcher()` - Enables driver performance rating system
+  - `fetch_ready_orders_for_dispatcher()` - Returns orders ready for pickup
+  - `fetch_available_drivers()` - Lists available drivers for assignment
+- ✅ **New Order Status**: Added 'en_route_to_restaurant' status for detailed delivery tracking
+- ✅ **Dispatcher Dashboard**: Complete interface for managing order assignments
+  - View ready-for-pickup orders
+  - View available drivers with ratings
+  - Assign orders to drivers with one click
+  - Rate driver performance after deliveries
+- ✅ **Enhanced Driver Dashboard**:
+  - Integrated map showing restaurant and customer locations
+  - New detailed status workflow buttons:
+    - "في طريقي للمطعم" (En route to restaurant)
+    - "استلمت الطلب" (Picked up from restaurant)
+    - "في طريقي للعميل" (In transit to customer)
+    - "تم التسليم" (Delivered)
+  - Visual progress tracker for delivery status
+- ✅ **Map Integration**: Added react-leaflet for delivery route visualization
+- ✅ **Customer Location**: Added customer_location field to orders table for map display
+
 ### Supabase Integration Completed
 - ✅ Configured environment variables (`.env` file with Supabase URL and anon key)
 - ✅ Fixed Vite configuration for Replit environment (HMR settings)
@@ -13,11 +37,12 @@ This project is a Progressive Web App (PWA) discount and delivery platform desig
 - ✅ **Fixed critical bug**: Removed authentication gate blocking guest orders in `OrderPage.tsx`
 - ✅ Both authenticated and guest users can now place orders successfully
 - ✅ Guest orders create temporary customer records in database
-- ✅ Full order lifecycle from customer → merchant → driver → delivery working
+- ✅ Full order lifecycle from customer → merchant → dispatcher → driver → delivery working
 
 ### Dashboard Functionality Verified
 - ✅ **Merchant Dashboard**: Orders tab with accept/reject, preparing, and ready-for-pickup buttons
-- ✅ **Delivery Driver Dashboard**: Shows ready_for_pickup orders with accept functionality
+- ✅ **Dispatcher Dashboard**: Order assignment, driver management, and rating system
+- ✅ **Delivery Driver Dashboard**: Shows assigned orders with map integration and detailed status updates
 - ✅ **Admin Dashboard**: Full restaurant management (add, edit, delete)
 - ✅ **Coupon Management**: Mark as Used button updates database and UI instantly
 

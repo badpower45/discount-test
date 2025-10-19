@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Truck, MapPin, Clock, Star, Package, CheckCircle } from 'lucide-react';
+import { Truck, MapPin, Clock, Star, Package, CheckCircle, Map as MapIcon } from 'lucide-react';
 import { 
   getOrdersByStatus,
   getDriverById,
@@ -15,15 +15,17 @@ import {
 import type { Order, DeliveryDriver } from '../lib/database-functions';
 import { MainLayout } from './MainLayout';
 import { useAuth } from '../contexts/AuthContext';
+import { DeliveryMap } from './DeliveryMap';
 
 const statusLabels = {
   'pending_restaurant_acceptance': 'انتظار موافقة المطعم',
   'confirmed': 'مؤكد',
   'preparing': 'قيد التحضير',
   'ready_for_pickup': 'جاهز للاستلام',
+  'en_route_to_restaurant': 'في الطريق للمطعم',
   'assigned_to_driver': 'تم التعيين',
   'picked_up': 'تم الاستلام',
-  'in_transit': 'في الطريق',
+  'in_transit': 'في الطريق للعميل',
   'delivered': 'تم التوصيل',
   'cancelled': 'ملغي'
 };
@@ -77,9 +79,10 @@ export function DeliveryDriverDashboard() {
       setStats(driverStats);
 
       // تحميل الطلبات المختلفة - functions return arrays directly
-      const [available, assignedOrders, pickedUpOrders, inTransitOrders, completed] = await Promise.all([
+      const [available, assignedOrders, enRouteOrders, pickedUpOrders, inTransitOrders, completed] = await Promise.all([
         getOrdersByStatus('ready_for_pickup'),
         getOrdersByStatus('assigned_to_driver', undefined, driverId),
+        getOrdersByStatus('en_route_to_restaurant', undefined, driverId),
         getOrdersByStatus('picked_up', undefined, driverId),
         getOrdersByStatus('in_transit', undefined, driverId),
         getOrdersByStatus('delivered')
@@ -90,6 +93,7 @@ export function DeliveryDriverDashboard() {
       // Combine all active order statuses for this driver
       const allActiveOrders = [
         ...(Array.isArray(assignedOrders) ? assignedOrders : []),
+        ...(Array.isArray(enRouteOrders) ? enRouteOrders : []),
         ...(Array.isArray(pickedUpOrders) ? pickedUpOrders : []),
         ...(Array.isArray(inTransitOrders) ? inTransitOrders : [])
       ];
@@ -329,10 +333,25 @@ export function DeliveryDriverDashboard() {
                         <span className="truncate">{order.customer_address}</span>
                       </div>
 
+                      {/* الخريطة */}
+                      {order.customer_location && (
+                        <div className="mb-4">
+                          <h5 className="text-sm font-medium mb-2 flex items-center gap-2">
+                            <MapIcon className="w-4 h-4" />
+                            خريطة التوصيل
+                          </h5>
+                          <DeliveryMap 
+                            order={order}
+                            restaurantLocation={{ lat: 24.7136, lng: 46.6753 }}
+                            className="w-full h-64 rounded-lg overflow-hidden border border-gray-300"
+                          />
+                        </div>
+                      )}
+
                       {/* شريط تقدّم واضح للحالة */}
                       <div className="mb-3">
                         {(() => {
-                          const steps = ['assigned_to_driver','picked_up','in_transit','delivered'] as const;
+                          const steps = ['en_route_to_restaurant', 'picked_up','in_transit','delivered'] as const;
                           const currentIndex = Math.max(0, steps.indexOf(order.status as any));
                           return (
                             <div className="flex items-center justify-between">
@@ -350,36 +369,50 @@ export function DeliveryDriverDashboard() {
                           );
                         })()}
                         <div className="flex justify-between text-xs text-gray-600 mt-2">
-                          <span>تم التعيين</span>
-                          <span>تم الاستلام</span>
-                          <span>في الطريق</span>
-                          <span>تم التوصيل</span>
+                          <span>للمطعم</span>
+                          <span>استلمت</span>
+                          <span>للعميل</span>
+                          <span>تم</span>
                         </div>
                       </div>
                       
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        {/* للطلبات المعينة من النظام القديم أو المقبولة مباشرة */}
                         {order.status === 'assigned_to_driver' && (
                           <Button 
                             size="sm" 
-                            onClick={() => handleUpdateOrderStatus(order.id, 'picked_up')}
+                            onClick={() => handleUpdateOrderStatus(order.id, 'en_route_to_restaurant')}
+                            className="flex-1"
                           >
-                            تأكيد الاستلام
+                            بدء التوصيل - في طريقي للمطعم
+                          </Button>
+                        )}
+                        {/* للطلبات المعينة من الموزع */}
+                        {order.status === 'en_route_to_restaurant' && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleUpdateOrderStatus(order.id, 'picked_up')}
+                            className="flex-1"
+                          >
+                            استلمت الطلب من المطعم
                           </Button>
                         )}
                         {order.status === 'picked_up' && (
                           <Button 
                             size="sm" 
                             onClick={() => handleUpdateOrderStatus(order.id, 'in_transit')}
+                            className="flex-1"
                           >
-                            في الطريق
+                            في طريقي للعميل
                           </Button>
                         )}
                         {order.status === 'in_transit' && (
                           <Button 
                             size="sm" 
                             onClick={() => handleUpdateOrderStatus(order.id, 'delivered')}
+                            className="flex-1"
                           >
-                            تم التوصيل
+                            تم التسليم
                           </Button>
                         )}
                       </div>

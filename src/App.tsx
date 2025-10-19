@@ -7,6 +7,7 @@ import { CustomerDiscountPage } from './components/CustomerDiscountPage';
 import { OrderPage } from './components/OrderPage';
 import { OrderTrackingPage } from './components/OrderTrackingPage';
 import { DeliveryDriverDashboard } from './components/DeliveryDriverDashboard';
+import { DispatcherDashboard } from './components/DispatcherDashboard';
 import { MerchantDashboard } from './components/MerchantDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { LoginPage } from './components/LoginPage';
@@ -213,6 +214,11 @@ export default function App() {
               <Route path="/merchant" element={
                 <ProtectedRoute requireMerchant={true}>
                   <MerchantDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/dispatcher" element={
+                <ProtectedRoute requireMerchant={true}>
+                  <DispatcherDashboard />
                 </ProtectedRoute>
               } />
               <Route path="/admin" element={

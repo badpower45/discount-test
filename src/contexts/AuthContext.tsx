@@ -9,7 +9,7 @@ interface MerchantData {
   email: string;
   restaurant_id: string;
   restaurant_name?: string;
-  role: 'merchant' | 'admin';
+  role: 'merchant' | 'admin' | 'dispatcher';
 }
 
 interface DriverData {
