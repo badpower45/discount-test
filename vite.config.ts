@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(process.cwd(), './src'),
+      '@assets': path.resolve(process.cwd(), './attached_assets'),
     },
   },
   server: {
@@ -22,5 +23,13 @@ export default defineConfig({
   preview: {
     port: 5000,
     host: '0.0.0.0'
-  }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      }
+    }
+  },
+  publicDir: 'public'
 });

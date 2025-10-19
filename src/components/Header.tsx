@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { Menu, ShoppingCart, User, LogOut, Home, UtensilsCrossed } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-// Removed dropdown; we will use a right-side Sheet for account menu on all sizes
+import { NotificationManager } from './NotificationManager';
 
 export function Header() {
   const navigate = useNavigate();
@@ -100,7 +100,8 @@ export function Header() {
           </nav>
 
           {/* Desktop Auth */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center gap-3">
+            <NotificationManager />
             <AuthSection />
           </div>
 
