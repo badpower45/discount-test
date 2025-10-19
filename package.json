@@ -73,6 +73,18 @@
             "dev": "vite",
             "build": "vite build",
             "preview": "vite preview --host 0.0.0.0 --port 5000",
-            "start": "npx serve -s dist -l 5000"
+            "start": "npx serve -s dist -l 5000",
+            "cap:init": "npx cap init",
+            "cap:add:android": "npx cap add android",
+            "cap:add:ios": "npx cap add ios",
+            "cap:sync": "npm run build && npx cap sync",
+            "cap:sync:android": "npm run build && npx cap sync android",
+            "cap:sync:ios": "npm run build && npx cap sync ios",
+            "cap:open:android": "npx cap open android",
+            "cap:open:ios": "npx cap open ios",
+            "cap:run:android": "npx cap run android",
+            "cap:run:ios": "npx cap run ios",
+            "android:build": "npm run build && npx cap sync android && npx cap open android",
+            "ios:build": "npm run build && npx cap sync ios && npx cap open ios"
       }
 }
