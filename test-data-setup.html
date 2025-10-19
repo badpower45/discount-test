@@ -82,8 +82,21 @@
             <h3>إعداد يدوي:</h3>
             <button onclick="addTestRestaurants()">1️⃣ إضافة مطاعم تجريبية</button>
             <button onclick="addTestDrivers()">2️⃣ إضافة سائقين</button>
-            <button onclick="addTestDispatcher()">3️⃣ إضافة موزع</button>
+            <button onclick="addTestCustomers()">3️⃣ إضافة عملاء</button>
             <button onclick="viewCurrentData()">👁️ عرض البيانات الحالية</button>
+        </div>
+        
+        <div class="section" style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">⚠️ إنشاء حسابات التاجر والموزع والسائق</h3>
+            <p style="color: #856404; margin-bottom: 10px;">
+                لا يمكن إنشاء حسابات المستخدمين (Auth) من هنا.<br>
+                الرجاء اتباع التعليمات في ملف <strong>CREATE_TEST_ACCOUNTS.md</strong> لإنشاء:
+            </p>
+            <ul style="color: #856404;">
+                <li>✅ حساب التاجر (Merchant)</li>
+                <li>✅ حساب الموزع (Dispatcher)</li>
+                <li>✅ حساب السائق (Driver)</li>
+            </ul>
         </div>
 
         <div id="log"></div>
@@ -211,25 +224,41 @@
             }
         }
 
-        async function addTestDispatcher() {
-            log('📋 بدء إضافة بيانات موزع تجريبي...', 'info');
+        async function addTestCustomers() {
+            log('👥 بدء إضافة العملاء التجريبيين...', 'info');
             
-            try {
-                // أولاً، نحتاج للتحقق من وجود جدول merchants
-                const { data: merchants, error: merchantError } = await supabase
-                    .from('merchants')
-                    .select('id, name, role')
-                    .limit(1);
+            const customers = [
+                {
+                    name: 'محمد العميل',
+                    email: 'customer1@test.com',
+                    phone: '+966555111222'
+                },
+                {
+                    name: 'فاطمة أحمد',
+                    email: 'customer2@test.com',
+                    phone: '+966555222333'
+                },
+                {
+                    name: 'علي حسن',
+                    email: 'customer3@test.com',
+                    phone: '+966555333444'
+                }
+            ];
 
-                if (merchantError) {
-                    log(`⚠️ تحذير: جدول merchants قد لا يكون موجوداً أو قد يحتاج إلى إعداد يدوي`, 'warning');
-                    log(`   الرجاء إضافة موزع يدوياً عبر SQL أو لوحة Supabase`, 'warning');
+            try {
+                const { data, error } = await supabase
+                    .from('customers')
+                    .insert(customers)
+                    .select();
+
+                if (error) {
+                    log(`❌ خطأ: ${error.message}`, 'error');
                 } else {
-                    log(`✅ جدول merchants موجود ويحتوي على ${merchants?.length || 0} سجلات`, 'info');
-                    log(`   قد تحتاج إلى تحديث role لأحد التجار إلى 'dispatcher' يدوياً`, 'info');
+                    log(`✅ تمت إضافة ${data.length} عملاء بنجاح!`, 'success');
+                    data.forEach(c => log(`   - ${c.name} (${c.phone})`, 'success'));
                 }
             } catch (err) {
-                log(`❌ خطأ: ${err.message}`, 'error');
+                log(`❌ خطأ غير متوقع: ${err.message}`, 'error');
             }
         }
 
@@ -292,11 +321,13 @@
             await addTestDrivers();
             await new Promise(resolve => setTimeout(resolve, 1000));
             
-            await addTestDispatcher();
+            await addTestCustomers();
             await new Promise(resolve => setTimeout(resolve, 1000));
             
             log('\n=====================================', 'info');
             log('✅ اكتمل إعداد البيانات التجريبية!', 'success');
+            log('⚠️ لا تنسى إنشاء حسابات التاجر والموزع والسائق!', 'warning');
+            log('📖 راجع ملف CREATE_TEST_ACCOUNTS.md للتعليمات', 'info');
             log('🔄 قم بتحديث الصفحة الرئيسية لرؤية المطاعم', 'info');
         }
 
