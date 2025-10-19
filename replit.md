@@ -1,6 +1,30 @@
 # Overview
 
-This project is a Progressive Web App (PWA) discount platform, similar to "Waffarha," designed to connect users with discounts from restaurants and cafes. Users can browse offers, register for unique discount codes, and merchants can validate these codes. The application features separate dashboards for customers, merchants, and administrators, offering full CRUD capabilities for managing offers, customers, and discount codes. It aims to provide an app-like experience with PWA features like offline functionality, push notifications, and installability on mobile devices.
+This project is a Progressive Web App (PWA) discount and delivery platform designed to connect users with discounts from restaurants and cafes. Users can browse offers, place orders with delivery, and merchants can manage orders and validate discount codes. The application features separate dashboards for customers, merchants, delivery drivers, and administrators, offering full CRUD capabilities for managing restaurants, customers, orders, and discount codes. It aims to provide an app-like experience with PWA features like offline functionality, push notifications, and installability on mobile devices.
+
+## Recent Changes (October 2025)
+
+### Supabase Integration Completed
+- ✅ Configured environment variables (`.env` file with Supabase URL and anon key)
+- ✅ Fixed Vite configuration for Replit environment (HMR settings)
+- ✅ Verified all database connections and RPC functions working correctly
+
+### Order System Improvements  
+- ✅ **Fixed critical bug**: Removed authentication gate blocking guest orders in `OrderPage.tsx`
+- ✅ Both authenticated and guest users can now place orders successfully
+- ✅ Guest orders create temporary customer records in database
+- ✅ Full order lifecycle from customer → merchant → driver → delivery working
+
+### Dashboard Functionality Verified
+- ✅ **Merchant Dashboard**: Orders tab with accept/reject, preparing, and ready-for-pickup buttons
+- ✅ **Delivery Driver Dashboard**: Shows ready_for_pickup orders with accept functionality
+- ✅ **Admin Dashboard**: Full restaurant management (add, edit, delete)
+- ✅ **Coupon Management**: Mark as Used button updates database and UI instantly
+
+### Real-time Features
+- ✅ Merchant dashboard receives real-time notifications for new orders with sound alerts
+- ✅ Auto-refresh every 30 seconds for orders
+- ✅ Optimistic UI updates for instant user feedback
 
 # User Preferences
 
