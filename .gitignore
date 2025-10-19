@@ -37,3 +37,15 @@ Thumbs.db
 
 # Replit
 .local/
+
+# Capacitor - Keep native projects, ignore build outputs only
+.capacitor/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+ios/App/build/
+ios/App/Pods/
+ios/App/Podfile.lock
