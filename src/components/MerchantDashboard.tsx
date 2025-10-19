@@ -25,7 +25,7 @@ import {
   Truck
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, getOrdersByStatus, updateOrderStatus, autoAssignDriver, type Restaurant, type Order } from '../lib/database-functions';
+import { validateCoupon, useCoupon, fetchRestaurantCoupons, fetchRestaurantById, getOrdersByStatus, updateOrderStatus, type Restaurant, type Order } from '../lib/database-functions';
 import { useAuth } from '../contexts/AuthContext';
 import { MainLayout } from './MainLayout';
 import { supabase } from '../lib/supabase';
