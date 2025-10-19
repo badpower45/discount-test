@@ -6,7 +6,7 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { MapPin, Clock, Search, Filter } from 'lucide-react';
+import { MapPin, Clock, Search, Filter, UtensilsCrossed, Tag, ShoppingCart, TrendingDown } from 'lucide-react';
 import { Input } from './ui/input';
 
 export function AllRestaurantsPage() {
@@ -31,7 +31,6 @@ export function AllRestaurantsPage() {
         case 'discount':
           return b.discount - a.discount;
         case 'date':
-          // Null-safe date comparison with fallback to epoch for invalid dates
           const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
           const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
           return dateB - dateA;
@@ -45,10 +44,10 @@ export function AllRestaurantsPage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">جاري تحميل المطاعم...</p>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <p className="text-lg text-muted-foreground font-medium">جاري تحميل المطاعم...</p>
           </div>
         </div>
       </MainLayout>
@@ -57,91 +56,107 @@ export function AllRestaurantsPage() {
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gray-50">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="min-h-screen bg-gradient-to-b from-background via-accent/5 to-background">
+        {/* Modern Hero Section */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-purple-600 text-primary-foreground">
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
             <div className="text-center">
-              <h1 className="text-4xl font-bold mb-4">جميع المطاعم والمقاهي</h1>
-              <p className="text-xl text-blue-100 mb-8">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/30">
+                <UtensilsCrossed className="w-4 h-4" />
+                <span className="text-sm font-medium">أكثر من {offers.length} مطعم متاح</span>
+              </div>
+              
+              <h1 className="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
+                جميع المطاعم والمقاهي
+              </h1>
+              <p className="text-lg md:text-xl text-primary-foreground/90 max-w-2xl mx-auto leading-relaxed">
                 اكتشف أفضل العروض والخصومات من مطاعمك المفضلة
               </p>
-              <div className="flex items-center justify-center text-blue-100">
-                <Badge variant="secondary" className="text-lg px-4 py-2 bg-white/20 text-white border-0">
-                  {offers.length} مطعم متاح
-                </Badge>
-              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Filters Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
-              {/* Search */}
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  placeholder="ابحث عن المطاعم..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+        {/* Modern Search & Filters */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
+          <Card className="shadow-2xl border border-border/50 bg-card/95 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row gap-4 items-center">
+                {/* Search Bar - Modern Design */}
+                <div className="flex-1 w-full relative">
+                  <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+                  <Input
+                    placeholder="ابحث عن المطاعم، الأطباق، المأكولات..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pr-12 h-12 text-lg border-2 focus:border-primary rounded-xl"
+                  />
+                </div>
+
+                {/* Category Filter */}
+                <div className="w-full lg:w-56">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="h-12 border-2 rounded-xl">
+                      <Filter className="w-4 h-4 ml-2" />
+                      <SelectValue placeholder="فئة المطعم" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الفئات</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category === 'restaurant' ? 'مطعم' :
+                           category === 'cafe' ? 'مقهى' :
+                           category === 'bakery' ? 'مخبز' :
+                           category === 'clothing' ? 'ملابس' : 'أخرى'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort By */}
+                <div className="w-full lg:w-56">
+                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'name' | 'discount' | 'date')}>
+                    <SelectTrigger className="h-12 border-2 rounded-xl">
+                      <TrendingDown className="w-4 h-4 ml-2" />
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">ترتيب أبجدي</SelectItem>
+                      <SelectItem value="discount">أعلى خصم</SelectItem>
+                      <SelectItem value="date">الأحدث</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+            </CardContent>
+          </Card>
+        </section>
 
-              {/* Category Filter */}
-              <div className="w-full lg:w-48">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
-                    <Filter className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="فئة المطعم" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">جميع الفئات</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category === 'restaurant' ? 'مطعم' :
-                         category === 'cafe' ? 'مقهى' :
-                         category === 'bakery' ? 'مخبز' :
-                         category === 'clothing' ? 'ملابس' : 'أخرى'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sort By */}
-              <div className="w-full lg:w-48">
-                <Select value={sortBy} onValueChange={(value) => setSortBy(value as 'name' | 'discount' | 'date')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="name">ترتيب أبجدي</SelectItem>
-                    <SelectItem value="discount">أعلى خصم</SelectItem>
-                    <SelectItem value="date">الأحدث</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
+        {/* Results Section */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* Results Count */}
-          <div className="mb-6">
-            <p className="text-gray-600">
-              عرض {filteredOffers.length} من {offers.length} مطعم
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
+              النتائج المتاحة
+            </h2>
+            <p className="text-muted-foreground">
+              عرض <span className="font-semibold text-primary">{filteredOffers.length}</span> من {offers.length} مطعم
             </p>
           </div>
 
           {/* Restaurants Grid */}
           {filteredOffers.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-12 h-12 text-gray-400" />
+            <div className="text-center py-20">
+              <div className="w-28 h-28 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+                <Search className="w-14 h-14 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-medium text-gray-900 mb-2">لم يتم العثور على مطاعم</h3>
-              <p className="text-gray-500 mb-6">
+              <h3 className="text-2xl font-bold text-foreground mb-3">لم يتم العثور على مطاعم</h3>
+              <p className="text-muted-foreground mb-8 text-lg">
                 جرب البحث بكلمات مختلفة أو قم بتغيير الفلاتر
               </p>
               <Button
@@ -149,86 +164,102 @@ export function AllRestaurantsPage() {
                   setSearchQuery('');
                   setSelectedCategory('all');
                 }}
-                variant="outline"
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
               >
                 إعادة تعيين البحث
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredOffers.map((offer) => (
-                <Card key={offer.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100">
-                  <div className="relative">
+                <Card 
+                  key={offer.id} 
+                  className="group overflow-hidden hover:shadow-2xl transition-all duration-500 border border-border/50 bg-card hover:-translate-y-1"
+                >
+                  {/* Image Section with Overlay */}
+                  <div className="relative overflow-hidden h-56">
                     <img 
                       src={offer.image} 
                       alt={offer.restaurant_name || offer.name}
-                      className="w-full h-48 object-cover"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
-                    <Badge 
-                      className="absolute top-3 right-3 bg-gradient-to-r from-red-500 to-red-600 text-white border-0"
-                    >
-                      -{offer.discount}%
-                    </Badge>
+                    
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    
+                    {/* Discount Badge - Large & Modern */}
+                    <div className="absolute top-4 right-4">
+                      <div className="bg-gradient-to-br from-destructive to-chart-3 text-white px-4 py-2 rounded-2xl shadow-2xl backdrop-blur-sm border-2 border-white/20">
+                        <div className="text-2xl font-black leading-none">{offer.discount}%</div>
+                        <div className="text-[10px] font-medium">خصم</div>
+                      </div>
+                    </div>
+                    
                     {/* Restaurant Logo */}
                     {offer.logo_url && (
-                      <div className="absolute top-3 left-3 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-white">
+                      <div className="absolute bottom-4 left-4 w-14 h-14 bg-card rounded-2xl shadow-2xl flex items-center justify-center border-2 border-white/50">
                         <img
                           src={offer.logo_url}
                           alt={`${offer.restaurant_name || offer.name} logo`}
-                          className="w-8 h-8 object-contain rounded-full"
+                          className="w-11 h-11 object-contain rounded-xl"
                         />
                       </div>
                     )}
                   </div>
                   
-                  <CardContent className="p-6">
-                    {/* Restaurant name and offer name */}
+                  <CardContent className="p-6 space-y-4">
+                    {/* Restaurant Name & Offer */}
                     {offer.restaurant_name ? (
-                      <div className="mb-2">
-                        <h4 className="text-sm text-gray-500 uppercase tracking-wide">{offer.restaurant_name}</h4>
-                        <h3 className="text-lg text-gray-900 font-semibold">{offer.offer_name || offer.name}</h3>
+                      <div>
+                        <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">
+                          {offer.restaurant_name}
+                        </p>
+                        <h3 className="text-xl font-bold text-foreground line-clamp-1">
+                          {offer.offer_name || offer.name}
+                        </h3>
                       </div>
                     ) : (
-                      <h3 className="text-lg text-gray-900 mb-2 font-semibold">{offer.name}</h3>
+                      <h3 className="text-xl font-bold text-foreground">{offer.name}</h3>
                     )}
                     
-                    <p className="text-gray-600 mb-4 text-sm line-clamp-2">{offer.description}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                      {offer.description}
+                    </p>
                     
-                    <div className="flex items-center justify-between mb-4 text-xs text-gray-500">
-                      <div className="flex items-center">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        متاح للتوصيل
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="w-3 h-3 mr-1" />
-                        30-45 دقيقة
-                      </div>
-                    </div>
-
-                    {/* Category Badge */}
-                    <div className="flex items-center justify-between mb-4">
-                      <Badge variant="outline" className="text-xs">
+                    {/* Info Tags & Category */}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="text-xs font-semibold">
                         {(offer.category === 'restaurant') ? 'مطعم' :
                          (offer.category === 'cafe') ? 'مقهى' :
                          (offer.category === 'bakery') ? 'مخبز' :
                          (offer.category === 'clothing') ? 'ملابس' : 'أخرى'}
                       </Badge>
+                      <div className="flex items-center gap-1 text-xs bg-accent/10 text-accent px-3 py-1.5 rounded-lg">
+                        <MapPin className="w-3 h-3" />
+                        <span>توصيل متاح</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-lg">
+                        <Clock className="w-3 h-3" />
+                        <span>30-45 دقيقة</span>
+                      </div>
                     </div>
                     
-                    <div className="flex gap-2">
+                    {/* CTA Buttons - Modern */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
                       <Button 
                         onClick={() => navigate(`/get-discount/${offer.id}`)}
-                        className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                        size="sm"
+                        variant="outline"
+                        className="border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all"
                       >
-                        احصل على الخصم
+                        <Tag className="w-4 h-4 ml-2" />
+                        احصل على خصم
                       </Button>
                       <Button 
                         onClick={() => navigate(`/order/${offer.id}`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
+                        className="bg-gradient-to-r from-primary via-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-primary-foreground border-0 shadow-lg shadow-primary/30"
                       >
+                        <ShoppingCart className="w-4 h-4 ml-2" />
                         اطلب الآن
                       </Button>
                     </div>
@@ -237,7 +268,7 @@ export function AllRestaurantsPage() {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </MainLayout>
   );

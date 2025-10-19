@@ -7,7 +7,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription } from './ui/alert';
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Phone, UserPlus, UtensilsCrossed } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function CustomerSignupPage() {
@@ -34,11 +34,11 @@ export function CustomerSignupPage() {
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError('كلمات المرور غير متطابقة');
       return false;
     }
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError('يجب أن تكون كلمة المرور 6 أحرف على الأقل');
       return false;
     }
     return true;
@@ -55,7 +55,6 @@ export function CustomerSignupPage() {
     }
 
     try {
-      // Create user account
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -74,7 +73,6 @@ export function CustomerSignupPage() {
       }
 
       if (data.user) {
-        // Create customer profile in customers table
         const { error: profileError } = await supabase
           .from('customers')
           .insert([
@@ -88,15 +86,14 @@ export function CustomerSignupPage() {
 
         if (profileError) {
           console.error('Error creating customer profile:', profileError);
-          // Don't show error to user as the account is still created
         }
 
-        toast.success('Account created successfully! Welcome to DeliveryDeal.');
+        toast.success('تم إنشاء حسابك بنجاح! مرحباً بك');
         navigate('/');
       }
     } catch (err) {
       console.error('Signup error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      setError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى');
     } finally {
       setLoading(false);
     }
@@ -116,144 +113,162 @@ export function CustomerSignupPage() {
       });
 
       if (error) {
-        setError(error.message);
+        setError('فشل التسجيل عبر Google');
       }
     } catch (err) {
       console.error('Google sign-up error:', err);
-      setError('Failed to sign up with Google. Please try again.');
+      setError('فشل التسجيل عبر Google. يرجى المحاولة مرة أخرى');
     }
   };
 
   return (
     <MainLayout>
-      <div className="min-h-[calc(100vh-theme(spacing.16))] flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Create your account</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Join DeliveryDeal and start saving on your favorite restaurants
+      <div className="min-h-[calc(100vh-theme(spacing.16))] flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-purple-600/5 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-lg w-full">
+          {/* Logo & Welcome */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-purple-600 shadow-2xl mb-6">
+              <UtensilsCrossed className="w-10 h-10 text-white" />
+            </div>
+            <h2 className="text-4xl font-extrabold text-foreground mb-3">
+              إنشاء حساب جديد
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              انضم إلينا وابدأ في توفير المال على طلباتك المفضلة
             </p>
           </div>
 
-          <Card className="shadow-lg border-0">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl text-center">Sign up</CardTitle>
+          <Card className="shadow-2xl border-2 border-border/50">
+            <CardHeader className="space-y-1 bg-gradient-to-r from-primary/5 to-purple-600/5 border-b">
+              <CardTitle className="text-2xl text-center font-bold">
+                التسجيل
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="p-8 space-y-6">
               {error && (
-                <Alert variant="destructive">
+                <Alert variant="destructive" className="border-2">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full name</Label>
+                  <Label htmlFor="fullName" className="text-base font-semibold">
+                    الاسم الكامل
+                  </Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <User className="absolute right-4 top-4 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="fullName"
                       name="fullName"
                       type="text"
                       autoComplete="name"
                       required
-                      placeholder="Enter your full name"
+                      placeholder="أدخل اسمك الكامل"
                       value={formData.fullName}
                       onChange={handleInputChange}
-                      className="pl-10"
+                      className="pr-12 h-14 text-base border-2 rounded-xl"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email address</Label>
+                  <Label htmlFor="email" className="text-base font-semibold">
+                    البريد الإلكتروني
+                  </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute right-4 top-4 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       autoComplete="email"
                       required
-                      placeholder="Enter your email"
+                      placeholder="أدخل بريدك الإلكتروني"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="pl-10"
+                      className="pr-12 h-14 text-base border-2 rounded-xl"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone number</Label>
+                  <Label htmlFor="phone" className="text-base font-semibold">
+                    رقم الهاتف
+                  </Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Phone className="absolute right-4 top-4 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="phone"
                       name="phone"
                       type="tel"
                       autoComplete="tel"
                       required
-                      placeholder="Enter your phone number"
+                      placeholder="أدخل رقم هاتفك"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="pl-10"
+                      className="pr-12 h-14 text-base border-2 rounded-xl"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-base font-semibold">
+                    كلمة المرور
+                  </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute right-4 top-4 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="new-password"
                       required
-                      placeholder="Create a password"
+                      placeholder="أنشئ كلمة مرور"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="pl-10 pr-10"
+                      className="pr-12 pl-12 h-14 text-base border-2 rounded-xl"
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      className="absolute left-4 top-4 text-muted-foreground hover:text-foreground transition-colors"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-5 w-5" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-5 w-5" />
                       )}
                     </button>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <Label htmlFor="confirmPassword" className="text-base font-semibold">
+                    تأكيد كلمة المرور
+                  </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute right-4 top-4 h-5 w-5 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       autoComplete="new-password"
                       required
-                      placeholder="Confirm your password"
+                      placeholder="أعد إدخال كلمة المرور"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className="pl-10 pr-10"
+                      className="pr-12 pl-12 h-14 text-base border-2 rounded-xl"
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      className="absolute left-4 top-4 text-muted-foreground hover:text-foreground transition-colors"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-5 w-5" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-5 w-5" />
                       )}
                     </button>
                   </div>
@@ -261,36 +276,43 @@ export function CustomerSignupPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+                  size="lg"
+                  className="w-full h-14 text-lg bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 text-white shadow-xl rounded-xl mt-6"
                   disabled={loading}
                 >
                   {loading ? (
-                    'Creating account...'
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                      <span>جاري إنشاء الحساب...</span>
+                    </div>
                   ) : (
                     <>
-                      Create account
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      <UserPlus className="w-5 h-5 ml-2" />
+                      إنشاء حساب
                     </>
                   )}
                 </Button>
               </form>
 
-              <div className="relative">
+              <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
+                  <div className="w-full border-t-2 border-border" />
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                  <span className="px-4 bg-card text-muted-foreground font-medium">
+                    أو التسجيل باستخدام
+                  </span>
                 </div>
               </div>
 
               <Button
                 type="button"
                 variant="outline"
-                className="w-full"
+                size="lg"
+                className="w-full h-14 text-base border-2 rounded-xl"
                 onClick={handleGoogleSignUp}
               >
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 ml-2" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -308,17 +330,17 @@ export function CustomerSignupPage() {
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Sign up with Google
+                التسجيل عبر Google
               </Button>
 
-              <div className="text-center">
-                <span className="text-sm text-gray-600">
-                  Already have an account?{' '}
+              <div className="text-center pt-4 border-t-2 border-border">
+                <span className="text-base text-muted-foreground">
+                  لديك حساب بالفعل؟{' '}
                   <Link
                     to="/customer-login"
-                    className="font-medium text-blue-600 hover:text-blue-500"
+                    className="font-bold text-primary hover:text-primary/80 transition-colors"
                   >
-                    Sign in
+                    تسجيل الدخول
                   </Link>
                 </span>
               </div>
