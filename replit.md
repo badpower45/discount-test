@@ -1,6 +1,13 @@
 # Overview
 
-This is a discount platform web application similar to "Waffarha" that allows users to browse offers from restaurants and cafes, register to receive unique discount codes, and enables merchants to validate those codes. The application provides separate dashboards for customers, merchants, and administrators with full CRUD operations for managing offers, customers, and discount codes.
+This is a Progressive Web App (PWA) discount platform similar to "Waffarha" that allows users to browse offers from restaurants and cafes, register to receive unique discount codes, and enables merchants to validate those codes. The application provides separate dashboards for customers, merchants, and administrators with full CRUD operations for managing offers, customers, and discount codes.
+
+**PWA Features:**
+- Installable on mobile devices (iOS/Android)
+- Works offline with cached content
+- Push notifications support for real-time alerts
+- App-like experience on mobile browsers
+- Service Worker for offline-first functionality
 
 # User Preferences
 
@@ -9,13 +16,15 @@ Preferred communication style: Simple, everyday language.
 # System Architecture
 
 ## Frontend Architecture
-The application uses a React-based single-page application (SPA) architecture built with Vite as the build tool. The frontend leverages React Router for client-side routing and implements a context-based state management system through `AppContext` to share application state across components.
+The application uses a React-based Progressive Web App (PWA) architecture built with Vite as the build tool. The frontend leverages React Router for client-side routing and implements a context-based state management system through `AppContext` to share application state across components.
 
 **Key Design Decisions:**
 - **Component Structure**: Modular components for different user roles (LandingPage, CustomerDiscountPage, MerchantDashboard, AdminDashboard)
 - **State Management**: React Context API for global state management of offers, discount codes, and customers
 - **UI Framework**: Comprehensive use of Radix UI components with custom styling through shadcn/ui component library
 - **Styling**: TailwindCSS for utility-first styling with custom CSS variables for theming support
+- **PWA Integration**: Service Worker for offline support and push notifications
+- **Mobile-First**: Optimized for mobile devices with installable app capabilities
 
 ## Backend Architecture
 The application uses Supabase as a Backend-as-a-Service (BaaS) solution, providing PostgreSQL database, authentication, and real-time APIs. The backend architecture follows a serverless approach with Supabase handling all server-side operations.
@@ -85,7 +94,30 @@ The application requires environment variables for Supabase integration:
 - `VITE_SUPABASE_URL`: Supabase project URL
 - `VITE_SUPABASE_ANON_KEY`: Supabase anonymous key for client-side operations
 
-# Recent Updates (September 18, 2025)
+### PWA Configuration
+- **Manifest File**: `public/manifest.json` - Defines app name, icons, theme colors, and display mode
+- **Service Worker**: `public/service-worker.js` - Handles offline caching, push notifications, and background sync
+- **Icons**: App icons in 192x192 and 512x512 sizes for various device displays
+- **Notification Manager**: React component for managing push notification permissions and subscriptions
+
+# Recent Updates (October 19, 2025)
+
+## Progressive Web App (PWA) Conversion
+- **PWA Implementation**: Successfully converted the web application to a fully functional Progressive Web App
+- **Offline Support**: Implemented Service Worker with network-first caching strategy and offline fallback to cached shell
+- **Push Notifications**: Integrated Web Push API with notification permission management UI
+- **App Installation**: Users can now install the app on mobile devices (iOS/Android) directly from the browser
+- **Mobile Optimization**: Enhanced mobile experience with app-like interface and standalone display mode
+- **Notification Manager Component**: Added UI component in header for managing notification permissions and sending test notifications
+- **Service Worker Features**:
+  - Offline navigation support with fallback to cached index.html
+  - Dynamic caching of same-origin assets
+  - Push notification handling with customizable notification options
+  - Background sync capabilities for future enhancements
+- **Web App Manifest**: Configured with Arabic RTL support, custom icons, and theme colors
+- **Testing Verified**: Service Worker registration successful, offline mode working, notification permissions functional
+
+# Previous Updates (September 18, 2025)
 
 ## Final Project Import and Merchant Orders Implementation Completion
 - **GitHub Import**: Successfully imported and configured the project from GitHub into Replit environment
