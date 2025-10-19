@@ -333,12 +333,6 @@ export function DeliveryDriverDashboard() {
                       <div className="mb-3">
                         {(() => {
                           const steps = ['assigned_to_driver','picked_up','in_transit','delivered'] as const;
-                          const labels: Record<string,string> = {
-                            assigned_to_driver: 'تم التعيين',
-                            picked_up: 'تم الاستلام',
-                            in_transit: 'في الطريق',
-                            delivered: 'تم التوصيل'
-                          };
                           const currentIndex = Math.max(0, steps.indexOf(order.status as any));
                           return (
                             <div className="flex items-center justify-between">

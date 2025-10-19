@@ -187,14 +187,7 @@ export function OrderPage() {
         special_instructions: customerInfo.specialInstructions
       };
 
-      // إعداد بيانات العميل إذا كان مسجل الدخول
-      const customerData = user ? {
-        name: customerInfo.name,
-        email: user.email || `${Date.now()}@temp.com`,
-        phone: customerInfo.phone
-      } : undefined;
-
-      const result = await createOrder(orderData, customerData);
+      const result = await createOrder(orderData);
       
       if (result && result.success && result.order) {
         setOrderPlaced(true);
