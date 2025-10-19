@@ -28,6 +28,19 @@ This project is a Progressive Web App (PWA) discount and delivery platform desig
 - ✅ **Map Integration**: Added react-leaflet for delivery route visualization
 - ✅ **Customer Location**: Added customer_location field to orders table for map display
 
+### End-to-End Testing Infrastructure (October 19, 2025)
+- ✅ **Test Data Tools**:
+  - `test-data-setup.html` - Interactive HTML tool to seed test data (restaurants, drivers, customers)
+  - `test-data.sql` - SQL script for batch data insertion
+- ✅ **Comprehensive Documentation**:
+  - `CREATE_TEST_ACCOUNTS.md` - Step-by-step guide for creating merchant/dispatcher/driver accounts
+  - `END_TO_END_TESTING_GUIDE.md` - Complete 5-stage testing scenario with verification steps
+  - `QUICK_START_TESTING.md` - Quick reference for rapid testing setup
+- ✅ **Test Accounts Setup**:
+  - Clear instructions for linking Supabase Auth users to merchants/delivery_drivers tables
+  - SQL snippets for role assignment and verification
+  - Troubleshooting guides for common issues
+
 ### Supabase Integration Completed
 - ✅ Configured environment variables (`.env` file with Supabase URL and anon key)
 - ✅ Fixed Vite configuration for Replit environment (HMR settings)
