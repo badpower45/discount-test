@@ -1,0 +1,91 @@
+الموضوع: خطة عمل لتحسين أداء التنقل وسرعة تحميل الصفحات (Performance Optimization)
+
+إلى: فريق تطوير Replit
+
+1. الهدف الأساسي: المشروع مكتمل وظيفيًا وتصميمه قيد التحسين. الهدف الآن هو تحسين الأداء بشكل كبير، وتحديدًا:
+
+جعل التنقل بين الصفحات فوريًا وسلسًا قدر الإمكان.
+
+تقليل وقت التحميل الأولي للتطبيق (Initial Load Time).
+
+إضافة مؤشرات تحميل (Loading Indicators) لتحسين تجربة المستخدم أثناء انتظار تحميل البيانات أو الصفحات.
+
+2. استراتيجية العمل: سنستخدم التقنيات المدمجة في React و Vite لتحقيق ذلك:
+
+Code Splitting (تقسيم الكود): Vite يقوم بهذا تلقائيًا، لكننا سنتأكد من استغلاله بشكل أمثل.
+
+Lazy Loading (التحميل الكسول): تحميل كود كل صفحة فقط عند الحاجة إليها.
+
+Suspense (الانتظار): عرض واجهة مؤقتة (مثل Skeleton Loader) أثناء تحميل المكونات.
+
+3. خطة العمل التفصيلية:
+
+المرحلة الأولى: تفعيل التحميل الكسول للصفحات (Lazy Loading Routes)
+
+هذه هي أهم خطوة لتقليل حجم التحميل الأولي وجعل التنقل أسرع.
+
+الملف المستهدف: الملف الذي يحتوي على تعريفات الـ Routes (عادةً src/App.tsx أو src/router/index.tsx).
+
+الإجراء:
+
+قم باستيراد lazy و Suspense من React: import React, { lazy, Suspense } from 'react';.
+
+لكل صفحة رئيسية (مثل LandingPage, AdminDashboard, OrderPage, DispatcherDashboard, DeliveryDriverDashboard, etc.)، قم بتغيير طريقة استيرادها من الاستيراد المباشر إلى استخدام lazy:
+
+JavaScript
+
+// بدلًا من: import LandingPage from './components/LandingPage';
+const LandingPage = lazy(() => import('./components/LandingPage'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+// ... وهكذا لباقي الصفحات الرئيسية
+قم بـ "تغليف" (wrap) عنصر <Routes> بالكامل داخل مكون <Suspense> مع تحديد واجهة مؤقتة (fallback) تظهر أثناء تحميل الصفحة:
+
+JavaScript
+
+<Suspense fallback={<LoadingSpinner />}> {/* أو أي مكون تحميل آخر */}
+  <Routes>
+    <Route path="/" element={<LandingPage />} />
+    <Route path="/admin" element={<AdminDashboard />} />
+    {/* ... باقي الـ routes */}
+  </Routes>
+</Suspense>
+إنشاء مكون تحميل بسيط: قم بإنشاء مكون LoadingSpinner.tsx (أو استخدم Skeleton من shadcn/ui) لعرضه كـ fallback.
+
+المرحلة الثانية: إضافة مؤشرات تحميل للبيانات (Data Loading Indicators)
+
+لتحسين التجربة عند انتظار جلب البيانات من Supabase.
+
+الملفات المستهدفة: الصفحات والمكونات التي تقوم بجلب بيانات (مثل AdminDashboard, MerchantDashboard, OrderPage, LandingPage).
+
+الإجراء:
+
+في كل مكون يقوم بجلب بيانات، استخدم حالة (state) لتتبع عملية التحميل (مثل isLoading).
+
+أثناء isLoading === true، قم بعرض مكونات Skeleton من shadcn/ui بدلاً من المحتوى الفعلي. يجب أن تحاكي هذه الـ Skeletons شكل المحتوى الذي سيتم تحميله (مثلاً، skeleton لكارت المطعم، skeleton لصف في جدول، إلخ).
+
+JavaScript
+
+if (isLoading) {
+  return (
+    <div>
+      <Skeleton className="h-12 w-1/2 mb-4" /> {/* مثال لعنوان */}
+      <div className="grid grid-cols-3 gap-4">
+        <Skeleton className="h-[125px] w-full rounded-xl" /> {/* مثال لكارت */}
+        <Skeleton className="h-[125px] w-full rounded-xl" />
+        <Skeleton className="h-[125px] w-full rounded-xl" />
+      </div>
+    </div>
+  );
+}
+
+// إذا لم يكن التحميل جاريًا، اعرض المحتوى الفعلي
+return (
+  <div>
+    {/* ... المحتوى الفعلي ... */}
+  </div>
+);
+المرحلة الثالثة (اختياري ومتقدم): تحليل حجم الحزمة (Bundle Analysis)
+
+الإجراء: إذا كان وقت التحميل الأولي لا يزال بطيئًا، يمكن استخدام أداة مثل rollup-plugin-visualizer لتحليل حجم ملفات JavaScript الناتجة وتحديد أي مكتبات كبيرة يمكن تحميلها بشكل كسول أو استبدالها.
+
+بتنفيذ هذه الخطوات، سيشعر المستخدم بتحسن كبير في سرعة التطبيق وسلاسة التنقل بين صفحاته.
