@@ -8,6 +8,8 @@ import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { MapPin, Clock, Search, Filter, UtensilsCrossed, Tag, ShoppingCart, TrendingDown } from 'lucide-react';
 import { Input } from './ui/input';
+import { RestaurantGridSkeleton } from './skeletons/RestaurantCardSkeleton';
+import { Skeleton } from './ui/skeleton';
 
 export function AllRestaurantsPage() {
   const { offers, loading } = useContext(AppContext);
@@ -44,11 +46,28 @@ export function AllRestaurantsPage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-lg text-muted-foreground font-medium">جاري تحميل المطاعم...</p>
-          </div>
+        <div className="min-h-screen bg-gradient-to-b from-background via-accent/5 to-background">
+          <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-purple-600 text-primary-foreground">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative z-10">
+              <div className="text-center space-y-4">
+                <Skeleton className="h-8 w-48 mx-auto bg-white/20" />
+                <Skeleton className="h-16 w-96 mx-auto bg-white/20" />
+                <Skeleton className="h-6 w-64 mx-auto bg-white/20" />
+              </div>
+            </div>
+          </section>
+          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
+            <Card className="shadow-2xl border border-border/50 bg-card/95 backdrop-blur-sm mb-8">
+              <CardContent className="p-6">
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <Skeleton className="h-12 flex-1 rounded-xl" />
+                  <Skeleton className="h-12 w-full lg:w-56 rounded-xl" />
+                  <Skeleton className="h-12 w-full lg:w-56 rounded-xl" />
+                </div>
+              </CardContent>
+            </Card>
+            <RestaurantGridSkeleton count={9} />
+          </section>
         </div>
       </MainLayout>
     );
