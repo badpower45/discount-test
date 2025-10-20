@@ -1,21 +1,21 @@
 import React from 'react';
 import { Header } from './Header';
-import { Footer } from './Footer';
+import { BottomNav } from './BottomNav';
 
 interface MainLayoutProps {
   children: React.ReactNode;
-  showFooter?: boolean;
+  showBottomNav?: boolean;
   showHeader?: boolean;
 }
 
-export function MainLayout({ children, showFooter = true, showHeader = true }: MainLayoutProps) {
+export function MainLayout({ children, showBottomNav = true, showHeader = true }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {showHeader && <Header />}
-      <main className={`flex-1`}>
+      <main className={`flex-1 ${showBottomNav ? 'mb-nav' : ''}`}>
         {children}
       </main>
-      {showFooter && <Footer />}
+      {showBottomNav && <BottomNav />}
     </div>
   );
 }

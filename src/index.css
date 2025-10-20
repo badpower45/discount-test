@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,83 +6,87 @@
 
 @layer base {
   :root {
-    /* Modern Color Palette - Blue & Vibrant */
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Gen Z Modern Color Palette - Vibrant & Fresh */
+    --background: 0 0% 99%;
+    --foreground: 240 10% 4%;
     
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 240 10% 4%;
     
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 240 10% 4%;
     
-    /* Primary: Vibrant Blue */
-    --primary: 217 91% 60%;
+    /* Primary: Electric Lime Green - Gen Z Trendy */
+    --primary: 142 76% 45%;
     --primary-foreground: 0 0% 100%;
     
-    /* Secondary: Light Gray */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    /* Secondary: Soft Lavender */
+    --secondary: 250 100% 98%;
+    --secondary-foreground: 240 10% 4%;
     
-    /* Muted: Very Light Gray */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted: Ultra Light Gray */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46%;
     
-    /* Accent: Energetic Orange */
-    --accent: 24 95% 53%;
+    /* Accent: Hot Pink - Gen Z Vibe */
+    --accent: 330 81% 60%;
     --accent-foreground: 0 0% 100%;
     
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142 76% 45%;
     
-    --radius: 0.75rem;
+    --radius: 1rem;
     
-    /* Success Color */
-    --success: 142 76% 36%;
+    /* Success Color - Vibrant Green */
+    --success: 142 76% 45%;
     --success-foreground: 0 0% 100%;
     
-    /* Warning Color */
-    --warning: 38 92% 50%;
+    /* Warning Color - Electric Orange */
+    --warning: 25 95% 53%;
     --warning-foreground: 0 0% 100%;
+    
+    /* Info Color - Sky Blue */
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
     
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
     
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
     
-    --primary: 217 91% 60%;
+    --primary: 142 76% 45%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 98%;
     
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 64.9%;
     
-    --accent: 24 95% 53%;
+    --accent: 330 81% 60%;
     --accent-foreground: 0 0% 100%;
     
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 142 76% 45%;
   }
   
   * {
     border-color: hsl(var(--border));
-    font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Tajawal', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   
   body {
@@ -90,55 +94,102 @@
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
     direction: rtl;
+    overflow-x: hidden;
   }
   
-  /* Modern Typography */
+  /* Modern Typography - Gen Z Style */
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     line-height: 1.2;
+    letter-spacing: -0.02em;
   }
   
-  /* Smooth Animations */
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+  }
+  
+  h2 {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+  }
+  
+  /* Smooth Animations - Bouncy & Fun */
   * {
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition-duration: 0.3s;
   }
   
-  /* Modern Shadows */
+  /* Modern Shadows - Soft & Elevated */
   .shadow-modern {
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
   }
   
   .shadow-modern-lg {
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08);
   }
   
-  /* Gradient Backgrounds */
+  .shadow-neon {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+  
+  /* Gradient Backgrounds - Vibrant */
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(217 91% 45%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(142 86% 35%) 100%);
   }
   
   .gradient-accent {
-    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(24 95% 40%) 100%);
+    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(330 81% 50%) 100%);
   }
   
-  /* Custom Scrollbar */
+  .gradient-hero {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--accent) / 0.1) 100%);
+  }
+  
+  /* Glassmorphism Effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  /* Custom Scrollbar - Minimal & Modern */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   
   ::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
-    border-radius: 5px;
+    background: transparent;
   }
   
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.3);
-    border-radius: 5px;
+    background: hsl(var(--primary) / 0.4);
+    border-radius: 100px;
   }
   
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.5);
+    background: hsl(var(--primary) / 0.6);
+  }
+  
+  /* Hover Effects - Interactive */
+  .hover-lift {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+  
+  .hover-glow:hover {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+  }
+  
+  /* Bottom Navigation Safe Area */
+  .pb-safe {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .mb-nav {
+    margin-bottom: 5rem;
   }
 }
 
