@@ -6,9 +6,10 @@ import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Grid3X3, Coffee, UtensilsCrossed, Tag, MapPin, TrendingDown, Clock, ShoppingCart } from 'lucide-react';
+import { RestaurantGridSkeleton } from './skeletons/RestaurantCardSkeleton';
 
 export function LandingPage() {
-  const { offers } = useContext(AppContext);
+  const { offers, loading } = useContext(AppContext);
   const navigate = useNavigate();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('highest');
@@ -157,8 +158,11 @@ export function LandingPage() {
       {/* Modern Offers Grid */}
       <section className="py-16 bg-gradient-to-b from-background to-accent/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredOffers.map((offer) => (
+          {loading ? (
+            <RestaurantGridSkeleton count={6} />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredOffers.map((offer) => (
               <Card 
                 key={offer.id} 
                 className="group overflow-hidden hover:shadow-2xl transition-all duration-500 border border-border/50 bg-card hover:-translate-y-1"
@@ -245,8 +249,9 @@ export function LandingPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </MainLayout>
