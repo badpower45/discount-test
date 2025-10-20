@@ -11,6 +11,7 @@ import type { Restaurant } from '../lib/database-functions';
 import { MainLayout } from './MainLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { Textarea } from './ui/textarea';
+import { OrderPageSkeleton } from './skeletons/OrderPageSkeleton';
 
 interface OrderItem {
   name: string;
@@ -246,12 +247,7 @@ export function OrderPage() {
   if (!restaurant) {
     return (
       <MainLayout>
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <p className="text-lg text-muted-foreground font-medium">جاري تحميل بيانات المطعم...</p>
-          </div>
-        </div>
+        <OrderPageSkeleton />
       </MainLayout>
     );
   }
