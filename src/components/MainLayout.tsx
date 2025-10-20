@@ -12,7 +12,7 @@ export function MainLayout({ children, showBottomNav = true, showHeader = true }
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {showHeader && <Header />}
-      <main className={`flex-1 ${showBottomNav ? 'mb-nav' : ''}`}>
+      <main className={`flex-1 ${showBottomNav ? 'pb-20 md:pb-24' : ''}`}>
         {children}
       </main>
       {showBottomNav && <BottomNav />}
