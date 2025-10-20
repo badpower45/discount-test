@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { LandingPage } from './components/LandingPage';
-import { AllRestaurantsPage } from './components/AllRestaurantsPage';
-import { ProfilePage } from './components/ProfilePage';
-import { CustomerDiscountPage } from './components/CustomerDiscountPage';
-import { OrderPage } from './components/OrderPage';
-import { OrderTrackingPage } from './components/OrderTrackingPage';
-import { DeliveryDriverDashboard } from './components/DeliveryDriverDashboard';
-import { DispatcherDashboard } from './components/DispatcherDashboard';
-import { MerchantDashboard } from './components/MerchantDashboard';
-import { AdminDashboard } from './components/AdminDashboard';
-import { LoginPage } from './components/LoginPage';
-import { CustomerLoginPage } from './components/CustomerLoginPage';
-import { CustomerSignupPage } from './components/CustomerSignupPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
-// Test components removed for production
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider } from './contexts/AuthContext';
+import { LoadingSpinner } from './components/LoadingSpinner';
+
+const LandingPage = lazy(() => import('./components/LandingPage').then(m => ({ default: m.LandingPage })));
+const AllRestaurantsPage = lazy(() => import('./components/AllRestaurantsPage').then(m => ({ default: m.AllRestaurantsPage })));
+const ProfilePage = lazy(() => import('./components/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const CustomerDiscountPage = lazy(() => import('./components/CustomerDiscountPage').then(m => ({ default: m.CustomerDiscountPage })));
+const OrderPage = lazy(() => import('./components/OrderPage').then(m => ({ default: m.OrderPage })));
+const OrderTrackingPage = lazy(() => import('./components/OrderTrackingPage').then(m => ({ default: m.OrderTrackingPage })));
+const DeliveryDriverDashboard = lazy(() => import('./components/DeliveryDriverDashboard').then(m => ({ default: m.DeliveryDriverDashboard })));
+const DispatcherDashboard = lazy(() => import('./components/DispatcherDashboard').then(m => ({ default: m.DispatcherDashboard })));
+const MerchantDashboard = lazy(() => import('./components/MerchantDashboard').then(m => ({ default: m.MerchantDashboard })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const LoginPage = lazy(() => import('./components/LoginPage').then(m => ({ default: m.LoginPage })));
+const CustomerLoginPage = lazy(() => import('./components/CustomerLoginPage').then(m => ({ default: m.CustomerLoginPage })));
+const CustomerSignupPage = lazy(() => import('./components/CustomerSignupPage').then(m => ({ default: m.CustomerSignupPage })));
 import { fetchRestaurants, fetchCustomers, fetchAllCoupons } from './lib/database-functions';
 import { supabase } from './lib/supabase';
 import type { Restaurant } from './lib/database-functions';
@@ -192,43 +193,44 @@ export default function App() {
       <AppProvider>
         <Router>
           <div className="min-h-screen bg-white">
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/restaurants" element={<AllRestaurantsPage />} />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
-              <Route path="/order/:restaurantId" element={<OrderPage />} />
-              <Route path="/track-order/:orderNumber" element={<OrderTrackingPage />} />
-              <Route path="/driver-dashboard" element={
-                <ProtectedRoute requireDriver={true} fallbackPath="/customer-login">
-                  <DeliveryDriverDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/customer-login" element={<CustomerLoginPage />} />
-              <Route path="/customer-signup" element={<CustomerSignupPage />} />
-              <Route path="/merchant-login" element={<LoginPage />} />
-              <Route path="/merchant" element={
-                <ProtectedRoute requireMerchant={true}>
-                  <MerchantDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/dispatcher" element={
-                <ProtectedRoute requireMerchant={true}>
-                  <DispatcherDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin" element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-{/* Test routes removed for production */}
-              <Route path="*" element={<LandingPage />} />
-            </Routes>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/restaurants" element={<AllRestaurantsPage />} />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/get-discount/:offerId" element={<CustomerDiscountPage />} />
+                <Route path="/order/:restaurantId" element={<OrderPage />} />
+                <Route path="/track-order/:orderNumber" element={<OrderTrackingPage />} />
+                <Route path="/driver-dashboard" element={
+                  <ProtectedRoute requireDriver={true} fallbackPath="/customer-login">
+                    <DeliveryDriverDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/customer-login" element={<CustomerLoginPage />} />
+                <Route path="/customer-signup" element={<CustomerSignupPage />} />
+                <Route path="/merchant-login" element={<LoginPage />} />
+                <Route path="/merchant" element={
+                  <ProtectedRoute requireMerchant={true}>
+                    <MerchantDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/dispatcher" element={
+                  <ProtectedRoute requireMerchant={true}>
+                    <DispatcherDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<LandingPage />} />
+              </Routes>
+            </Suspense>
             <Toaster />
           </div>
         </Router>
