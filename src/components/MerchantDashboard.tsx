@@ -930,7 +930,7 @@ export function MerchantDashboard() {
   );
 
   return (
-    <MainLayout showFooter={false} showHeader={false}>
+    <MainLayout showBottomNav={false} showHeader={false}>
       <SidebarProvider>
       <div className="min-h-screen bg-gray-50 flex">
         <MerchantSidebarMenu />
