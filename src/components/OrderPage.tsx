@@ -223,7 +223,6 @@ export function OrderPage() {
                     onClick={() => navigate(`/track-order/${placedOrderNumber}`)}
                     size="lg"
                     className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg"
-                    style={{ color: 'white' }}
                   >
                     <MapPin className="w-5 h-5 ml-2" />
                     تتبع الطلب الآن
@@ -574,7 +573,6 @@ export function OrderPage() {
                     size="lg"
                     className="w-full h-14 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-xl rounded-xl"
                     disabled={isSubmitting}
-                    style={{ color: 'white' }}
                   >
                     {isSubmitting ? (
                       <>
