@@ -31,6 +31,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isDispatcher: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any; role?: string }>;
   signOut: () => Promise<void>;
 }
@@ -52,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isDispatcher, setIsDispatcher] = useState(false);
 
   useEffect(() => {
     const getSessionAndMerchant = async () => {
@@ -104,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setMerchant(null);
         setDriver(null);
         setIsAdmin(false);
+        setIsDispatcher(false);
       }
       // No setLoading(false) needed here as it's already false
     });
@@ -134,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setMerchant(null);
         setIsAdmin(false);
+        setIsDispatcher(false);
         return null;
       }
 
@@ -149,7 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setMerchant(merchantData);
         setIsAdmin(merchantData.role === 'admin');
+        setIsDispatcher(merchantData.role === 'dispatcher');
         console.log('🔐 Admin status set to:', merchantData.role === 'admin');
+        console.log('🔐 Dispatcher status set to:', merchantData.role === 'dispatcher');
         return merchantData;
       }
       return null;
@@ -158,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Force clear loading state to prevent infinite hang
       setMerchant(null);
       setIsAdmin(false);
+      setIsDispatcher(false);
       return null;
     }
   };
@@ -241,6 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setDriver(null);
       setSession(null);
       setIsAdmin(false);
+      setIsDispatcher(false);
       
       // Clear local storage
       if (typeof window !== 'undefined') {
@@ -259,6 +267,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     loading,
     isAdmin,
+    isDispatcher,
     signIn,
     signOut
   };

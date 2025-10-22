@@ -20,12 +20,6 @@ export function BottomNav() {
       activePaths: ['/customer-discounts']
     },
     {
-      icon: MapPin,
-      label: 'التتبع',
-      path: '/order-tracking',
-      activePaths: ['/order-tracking']
-    },
-    {
       icon: User,
       label: 'الحساب',
       path: '/profile',

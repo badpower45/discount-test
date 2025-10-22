@@ -40,6 +40,8 @@ export function Header() {
   );
 
   const AuthSection = () => {
+    const { isDispatcher } = useAuth();
+    
     return (
       <Sheet>
         <SheetTrigger asChild>
@@ -65,6 +67,11 @@ export function Header() {
                 <Button variant="ghost" onClick={() => navigate('/profile')} className="justify-start">
                   الملف الشخصي
                 </Button>
+                {isDispatcher && (
+                  <Button variant="ghost" onClick={() => navigate('/dispatcher')} className="justify-start">
+                    لوحة التحكم
+                  </Button>
+                )}
                 {merchant && (
                   <Button variant="ghost" onClick={() => navigate('/merchant')} className="justify-start">
                     لوحة التاجر
