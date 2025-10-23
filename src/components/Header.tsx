@@ -140,10 +140,10 @@ export function Header() {
               <div className="flex flex-col gap-6 mt-6">
                 {/* Mobile Logo */}
                 <Link to="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-amber-600 to-amber-700 rounded-lg flex items-center justify-center">
                     <ShoppingCart className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-xl font-bold text-gray-900">
+                  <span className="text-xl font-bold text-white">
                     DeliveryDeal
                   </span>
                 </Link>
@@ -159,7 +159,7 @@ export function Header() {
                 <div className="flex flex-col gap-3 pt-6 border-t">
                   {user ? (
                     <>
-                      <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700">
+                      <div className="flex items-center gap-2 px-3 py-2 text-sm text-white">
                         <User className="w-4 h-4" />
                         {merchant?.name || user.email?.split('@')[0] || '\u0627\u0644\u062d\u0633\u0627\u0628'}
                       </div>
@@ -191,7 +191,7 @@ export function Header() {
                       </Button>
                       <Button
                         onClick={() => { navigate('/customer-signup'); setIsOpen(false); }}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-amber-700 hover:bg-amber-800 text-white"
                       >
                         إنشاء حساب
                       </Button>
